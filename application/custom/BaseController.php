@@ -23,6 +23,8 @@ class BaseController extends CI_Controller {
         $this->vendorStyles[] = BASE_PATH . "assets/vendor/simple-datatables/style.css";
 
         // Vendor Scripts
+        $this->vendorScripts[] = BASE_PATH . "assets/vendor/jquery/jquery.min.js";
+        $this->vendorScripts[] = BASE_PATH . "assets/vendor/jquery/jquery-ui.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/apexcharts/apexcharts.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/bootstrap/js/bootstrap.bundle.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/chart.js/chart.umd.js";

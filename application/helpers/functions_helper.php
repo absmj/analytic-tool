@@ -30,4 +30,17 @@ if(!function_exists("dblist")) {
         return array_keys($db);
     }
 }
+
+if(!function_exists('isPostRequest')) {
+    function isPostRequest() {
+        return $_SERVER['REQUEST_METHOD'] === 'POST';
+    }
+}
+
+if(!function_exists('post')) {
+    function post($field) {
+        return $_POST[$field] ?? null;
+    }
+}
+
 ?>
