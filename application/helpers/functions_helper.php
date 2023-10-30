@@ -38,8 +38,8 @@ if(!function_exists('isPostRequest')) {
 }
 
 if(!function_exists('post')) {
-    function post($field) {
-        return $_POST[$field] ?? null;
+    function post($field = null) {
+        return !$field ? $_POST : ($_POST[$field] ?? null);
     }
 }
 

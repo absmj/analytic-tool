@@ -17,6 +17,8 @@ class Reports extends BaseController
 			switch (post('step')) {
 				case 0:
 					return $this->stepOne();
+				case 3:
+					return $this->saveReport(0);
 			}
 
 			exit;
@@ -29,7 +31,9 @@ class Reports extends BaseController
 			"vendor/codemirror/hint.js",
 			"vendor/codemirror/sql/hint.js",
 			"vendor/pivottable/plotly.js",
-			"vendor/pivottable/pivottable.js"
+			"vendor/pivottable/pivottable.js",
+			"vendor/apexcharts/apexcharts.js",
+			"vendor/pivottable/apex.js",
 		])->set("vendorStyles", [
 			"vendor/codemirror/codemirror.css",
 			"vendor/codemirror/hint.css",
@@ -48,5 +52,9 @@ class Reports extends BaseController
 	private function stepOne()
 	{
 		echo json_encode($this->report->getQuery(post("database"), post("sql")));
+	}
+
+	private function saveReport() {
+		dd(post());
 	}
 }

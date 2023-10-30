@@ -1,81 +1,17 @@
-let chart;
-function prepareDataFunction(rawData) {
-  console.log(rawData)
-  var result = {};
-  var labels = [];
-  var data = [];
-  for (var i = 0; i < rawData.data.length; i++) {
-      var record = rawData.data[i];
-      if (record.c0 == undefined && record.r0 !== undefined) {
-          var _record = record.r0;
-          labels.push(_record);
-      }
-      if (record.c0 == undefined & record.r0 == undefined) continue;
-      if (record.v0 != undefined) {
-          data.push(!isNaN(record.v0) ? record.v0 : null);
-      }
-  }
-  result.labels = labels;
-  result.data = data;
-  return result;
-}
+function decycle(obj, stack = []) {
+  if (!obj || typeof obj !== 'object')
+    return obj;
 
-function drawChart(rawData) {
-  var data = prepareDataFunction(rawData);
-  var data_for_charts = {
-      datasets: [{
-          data: data.data,
-          backgroundColor: [
-              "#FF6384",
-              "#4BC0C0",
-              "#FFCE56",
-              "#E7E9ED",
-              "#36A2EB",
-              "#9ccc65",
-              "#b3e5fc"
+  if (stack.includes(obj))
+    return null;
 
-          ]
-      }],
-      labels: data.labels
-  };
-  options = {
-      responsive: true,
-      legend: {
-          position: 'right',
-      },
-      title: {
-          display: true,
-          fontSize: 18,
-          text: 'Profit by Countries'
-      },
-      scale: {
-          ticks: {
-              beginAtZero: true
-          },
-          reverse: false
-      },
-      animation: {
-          animateRotate: false,
-          animateScale: true
-      }
-  };
-  var ctx = document.getElementById("chart").getContext("2d");
-  chart = new Chart(ctx, {
-      data: data_for_charts,
-      type: 'bar',
-      options: options
-  });
-}
+  let s = stack.concat([obj]);
 
-function updateChart(rawData) {
-  // document.getElementById( "chart" ).remove();     
-  // let canvas = document.createElement('canvas');     
-  // canvas.setAttribute('id','chart');         
-  // document.querySelector('#chart-container').appendChild(canvas);
-  chart.destroy();
-  drawChart(rawData);
-
-  console.log(rawData)
+  return Array.isArray(obj)
+    ? obj.map(x => decycle(x, s))
+    : Object.fromEntries(
+      Object.entries(obj)
+        .map(([k, v]) => [k, decycle(v, s)]));
 }
 
 const steps = {
@@ -196,7 +132,58 @@ const steps = {
       container: null,
       data: null,
       pivot: null,
-      chart: null,
+      chart: {
+        type: 'line',
+        loading: false,
+        instance: null,
+        data: null,
+        options: null,
+        slice: null
+      },
+
+      get chartOptions() {
+        // if(this.chart.options) return this.chart.options;
+        return {
+          series: this.chart.data.series,
+          chart: {
+            height: 400,
+            type: this.chart.type,
+            zoom: {
+              enabled: false
+            }
+          },
+          dataLabels: {
+            enabled: false
+          },
+          stroke: {
+            curve: 'straight'
+          },
+          title: {
+            text: '',
+            align: 'left'
+          },
+          grid: {
+            row: {
+              colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
+              opacity: 0.5
+            },
+          },
+          xaxis: {
+            categories: this.chart.data.xaxis.categories,
+          }
+        };
+      },
+
+      set chartOptions({field}) {
+        console.log(field)
+        this.chart.options = {...this.chart.options, ...field}
+        this.chart.instance.updateOptions(this.chartOptions)
+      },
+
+      nextStage(callback) {
+        callback();
+        return this.chart;
+      },
 
       generatePivotTable() {
         this.pivot = new WebDataRocks({
@@ -207,40 +194,210 @@ const steps = {
           },
           reportcomplete: () => {
             this.pivot.off("reportcomplete");
-            this.createPolarChart();
-          },
-          reportchange: () => {
-            this.updatePolarChart();
+            this.createChart();
           }
         });
-
-        
       },
 
-      createPolarChart() {
-
-        const slice = {
-          "rows": this.pivot.getRows(),
-          "columns": this.pivot.getColumns(),
-          "measures": this.pivot.getMeasures()
-        };
-
-        console.log(webdatarocks.getData({
-            slice
-        }, drawChart, updateChart));
+      get dumpDataType() {
+        switch (this.chartType) {
+          case 'line':
+          case 'column':
+          case 'bar':
+            return 'bar';
+          case 'pie':
+            return 'pie';
+          case 'area':
+            return 'line';
+          case 'histogram':
+            return 'bar';
+          case 'scatter':
+            return 'line';
+          case 'combo':
+            return 'line';
+          default:
+            return 'line';
+        }
       },
 
-      updatePolarChart() {
-        const slice = {
-          "rows": this.pivot.getRows(),
-          "columns": this.pivot.getColumns(),
-          "measures": this.pivot.getMeasures()
+      prepareSeries(_data) {
+        const series = []
+        const r0 = [];
+        const data = _data.data;
+        let maxRow;
+        console.log(_data)
+        for (let a = 0; a < _data.meta.vAmount; a++) {
+          let values = [];
+          for(let i in data) {
+            const keys = Object.keys(data[i]);
+            if (data[i].r0 === undefined) continue;
+            r0.push(data[i].r0);
+            maxRow = Math.max(keys.filter(k => k.startsWith("r")).map(k => k.substring(1)))
+            values.push(data[i]['v' + a])
+          }
+          series.push({
+            name: _data.meta['v' + a + 'Name'],
+            data: values
+          })
+        }
+        return { series, xaxis: { categories: r0 } }
+      },
+
+      createApexChart(el = 'chart-container') {
+        const drawChart = (_data) => {
+          this.chart.data = this.prepareSeries(_data);
+          this.chart.options = this.chartOptions
+          this.chart.instance = new ApexCharts(document.getElementById(el), this.chart.options);
+          console.log(el)
+          this.chart.instance.render();
         };
 
-        console.log(slice)
-        webdatarocks.getData({
-            slice
-        }, updateChart);
+        const run = data => {
+          drawChart(data)
+          // console.log(this.chart.data)
+        }
+
+        const update = data => {
+          this.chart.data = this.prepareSeries(data)
+          // console.log(this.chart.data)
+          // console.log(this.chart.data)
+          this.chartOptions = {field: this.chart.data}
+          
+          this.chart.instance.updateOptions(this.chart.options);
+        }
+
+        if (this.chart.loading) {
+          this.slice = {
+            rows: this.pivot.getRows(),
+            columns: this.pivot.getColumns(),
+            measures: this.pivot.getMeasures()
+          }
+          this.pivot.getData(this.slice, run, update)
+        }
+
+      },
+
+      createChart(el = 'chart-container') {
+        this.chart.loading = false;
+
+        const onApexChartsLoaded = () => {
+          this.chart.loading = true;
+          this.createApexChart(el);
+        };
+
+        onApexChartsLoaded();
+
+        return this.chart;
+      },
+
+      destroy() {
+        if (this.container) this.container.classList.add("d-none");
+      },
+
+      mounted() {
+        if (!this.container) {
+          this.container = document.getElementById(this.id);
+          // $(".toggle-sidebar-btn").click();
+          this.generatePivotTable();
+        }
+
+        document.getElementById("legend").addEventListener("keyup", (e) => {
+          this.legend = e.target.value;
+        });
+
+        document.getElementById("chartType").addEventListener("change", (e) => {
+          this.chartType = e.target.value;
+        });
+
+        this.container.classList.remove("d-none");
+      },
+
+      set legend(l) {
+        console.log(this.chart.options)
+        this.chart.options.title.text = l;
+        this.chart.instance.updateOptions(this.chart.options);
+      },
+
+      set chartType(t) {
+        this.chart.options.chart.type = t;
+        this.chart.instance.updateOptions(this.chart.options);
+      },
+    },
+
+
+    // Step 4
+    {
+      id: 'stepfour',
+      container: null,
+      chart: null,
+      data: null,
+      that: null,
+      generateReportInfoTable(data) {
+        document.getElementById("info-report").innerHTML = `
+        <table class="table table-hover">
+          ${Object.keys(data).map(th => `<tr>
+            <th>${th}</th>
+            <td>${typeof data[th] == 'object' ? 'blob' : data[th]}</td>
+          </tr>`).join("")}
+        </table>`;
+
+      },
+
+      generateChartChanger(chart) {
+        document.getElementById("info-report-labels").innerHTML = `
+                                  <h6>Leybllar</h6>
+                                  <select id='chart-labels' class="form-select">
+                                    ${(chart.data.series).map((th, k) => `<tr>
+                                      <option value="${k}">${th.name}</option>
+                                    </tr>`).join("")}
+                                  </select>`;
+
+        document.getElementById("info-report-columns").innerHTML = `
+                                  <h6>Sütunlar</h6>
+                                  <select id='chart-columns' class="form-select">
+                                    ${(chart.data.xaxis.categories).map((th, k) => `<tr>
+                                      <option value="${k}">${th}</option>
+                                    </tr>`).join("")}
+                                  </select>`;
+
+
+        document.getElementById("chart-labels")?.addEventListener("change", (e) => {
+          document.getElementById("label-changer")?.remove();
+          const input = document.createElement("input");
+          input.classList.add("form-control", "mt-2")
+          input.id = "label-changer";
+          input.placeholder = input.value = chart.data.series[e.target.value].name
+          input.onkeyup = (v) => {
+            chart.data.options.series[e.target.value].name = v.target.value
+            chart.instance.updateOptions(chart.data.options)
+          }
+
+          e.target.parentNode.append(input)
+        })
+
+        // document.getElementById("chart-columns")?.addEventListener("change", (e) => {
+        //   document.getElementById("column-changer")?.remove();
+        //   const input = document.createElement("input");
+        //   input.classList.add("form-control", "mt-2")
+        //   input.id = "column-changer";
+        //   input.placeholder = input.value = chart.data.cache[e.target.value][0].Me
+        //   input.onkeyup = (v) => {
+        //     chart.data.cache[e.target.value][0].Me = v.target.value
+        //   }
+
+        //   input.onfocusout = v => {
+        //     chart.instance.draw(chart.data, chart.options)
+        //   }
+
+        //   e.target.parentNode.append(input)
+        // })
+      },
+
+      async save(callback = () => { }) {
+        console.log(this.that.report)
+        // const response = await $.post("/reports/create", { ...this.that.report, step: this.that.lastStep });
+        // callback();
+        // return response;
       },
 
       destroy() {
@@ -248,17 +405,48 @@ const steps = {
           this.container.classList.add("d-none")
       },
 
-      mounted() {
+      mounted(_this) {
+
         if (!this.container) {
           this.container = document.getElementById(this.id)
-          this.generatePivotTable()
         }
 
+        if (!this.that) {
+          this.that = _this;
+        }
+
+        // this.chart = this.that.chart
+
+        _this.nextButton.textContent = ("Yadda saxla");
+        _this.nextButton.id = "save-chart";
+        _this.nextButton.onclick = async () => {
+          await this.save()
+        }
+
+
+        this.chart = _this.steps[2].createChart('chart-container-preview')
+        this.generateChartChanger(this.chart)
+
         this.container.classList.remove("d-none")
+
       }
     }
 
   ],
+
+  get lastStep() {
+    return this.steps.length
+  },
+
+  get report() {
+    return {
+      ...this.steps[0].data,
+      chart: JSON.stringify(decycle({
+        data: this.steps[2].chart.data,
+        options: this.steps[2].chart.options
+      }))
+    }
+  },
 
   get currentStep() {
     return this.steps?.[this.current]
@@ -290,12 +478,18 @@ const steps = {
 
       this.formCheck(async () => {
 
+        if (this.current == this.steps.length - 1) {
+          return;
+        }
+
+
+
         const data = await this.currentStep.nextStage(() => {
           this.step = this.nextStep
         });
 
         this.currentStep.data = data
-        this.currentStep.mounted();
+        this.currentStep.mounted(this);
       })
     })
 
@@ -329,7 +523,7 @@ const steps = {
       case 2:
         return "Aralıq cədvəlin hazılanması";
       case 3:
-        return "Çart və ya diaqramların hazırlanması";
+        return "Məlumatların nəzərdən keçirilməsi və yadda saxlanılması";
       default:
         return null;
 
@@ -339,14 +533,15 @@ const steps = {
   set step(s) {
     if (this.current < this.steps.length) {
       this.currentStep.destroy();
+      console.log(this.currentStep)
       this.current = s;
       this.render("stepDescription")
     }
 
     if (this.current > 0) {
-      this.prevButton.classList.remove("d-none")
+      this.prevButton.classList.remove("invisible")
     } else {
-      this.prevButton.classList.add("d-none")
+      this.prevButton.classList.add("visible")
     }
   },
 

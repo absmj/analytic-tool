@@ -62,18 +62,58 @@
 
                     <div id="stepthree" class="d-none">
                         <div class="row">
-                            <div class="col-8">
+                            <div class="col-7">
                                 <div id="pivot" class="table-responsive"></div>
                             </div>
-                            <div class="col-4" id="chart-container">
-                                <canvas id="chart"></canvas>
+                            <div class="col-5">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="form-label">Çartın tipi</label>
+                                        <select id="chartType" class="form-select" required>
+                                            <option value="line">Line</option>
+                                            <option value="bar">Bar</option>
+                                            <option value="column">Column</option>
+                                            <option value="pie">Pie</option>
+                                            <option value="area">Area</option>
+                                            <option value="histogram">Histogram</option>
+                                            <option value="scatter">Scatter</option>
+                                            <option value="bubble">Bubble</option>
+                                            <option value="combo">Combo</option>
+                                        </select>
+
+                                    </div>
+
+                                    <div class="col-6">
+                                        <label class="form-label">Legendası</label>
+                                        <input id="legend" type="text" class="form-control" required>
+                                    </div>
+                                    <div class="col-12" data-chart="apex-2">
+                                        <div id="chart-container" style="position:relative;">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <div id="stepfour" class="d-none">
+                        <div class="row">
+                            <div class="col-4">
+                                <div id="info-report-labels"></div>
+                                <hr>
+                                <div id="info-report-columns"></div>
+                            </div>
+
+                            <div class="col-8" data-chart="apex-3">
+                                <div style="position:relative;" id="chart-container-preview" ></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="fields"></div>
 
-                    <div id="navigation-steps" class="mt-5 d-flex justify-content-between">
-                        <button id="prev" class="btn btn-warning d-none">Əvvəlki</button>
+                    <div id="navigation-steps" class="d-flex justify-content-between">
+                        <button id="prev" class="btn btn-warning invisible">Əvvəlki</button>
                         <button id="next" class="btn btn-primary">Növbəti</button>
                     </div>
                 </div>
