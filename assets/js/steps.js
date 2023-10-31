@@ -294,11 +294,13 @@ const steps = {
         if (this.container) this.container.classList.add("d-none");
       },
 
-      mounted() {
+      mounted(_this) {
         if (!this.container) {
           this.container = document.getElementById(this.id);
           // $(".toggle-sidebar-btn").click();
           this.generatePivotTable();
+        } else {
+          this.createApexChart();
         }
 
         document.getElementById("legend").addEventListener("keyup", (e) => {
@@ -368,29 +370,29 @@ const steps = {
           input.id = "label-changer";
           input.placeholder = input.value = chart.data.series[e.target.value].name
           input.onkeyup = (v) => {
-            chart.data.options.series[e.target.value].name = v.target.value
+            chart.data.series[e.target.value].name = v.target.value
             chart.instance.updateOptions(chart.data.options)
           }
 
           e.target.parentNode.append(input)
         })
 
-        // document.getElementById("chart-columns")?.addEventListener("change", (e) => {
-        //   document.getElementById("column-changer")?.remove();
-        //   const input = document.createElement("input");
-        //   input.classList.add("form-control", "mt-2")
-        //   input.id = "column-changer";
-        //   input.placeholder = input.value = chart.data.cache[e.target.value][0].Me
-        //   input.onkeyup = (v) => {
-        //     chart.data.cache[e.target.value][0].Me = v.target.value
-        //   }
+        document.getElementById("chart-columns")?.addEventListener("change", (e) => {
+          document.getElementById("column-changer")?.remove();
+          const input = document.createElement("input");
+          input.classList.add("form-control", "mt-2")
+          input.id = "column-changer";
+          input.placeholder = input.value = chart.data.series[e.target.value].name
+          input.onkeyup = (v) => {
+            input.value = chart.data.series[e.target.value].name = v.target.value
+          }
 
-        //   input.onfocusout = v => {
-        //     chart.instance.draw(chart.data, chart.options)
-        //   }
+          input.onfocusout = v => {
+            chart.instance.updateOptions(chart.options)
+          }
 
-        //   e.target.parentNode.append(input)
-        // })
+          e.target.parentNode.append(input)
+        })
       },
 
       async save(callback = () => { }) {
@@ -417,8 +419,6 @@ const steps = {
 
         // this.chart = this.that.chart
 
-        _this.nextButton.textContent = ("Yadda saxla");
-        _this.nextButton.id = "save-chart";
         _this.nextButton.onclick = async () => {
           await this.save()
         }
@@ -533,9 +533,15 @@ const steps = {
   set step(s) {
     if (this.current < this.steps.length) {
       this.currentStep.destroy();
-      console.log(this.currentStep)
       this.current = s;
       this.render("stepDescription")
+    }
+
+    if(this.current == this.steps.length - 1) {
+      this.nextButton.id = "save-report";
+      this.nextButton.textContent = "Yadda saxla"
+    } else {
+      this.nextButton.textContent = "Növbəti"
     }
 
     if (this.current > 0) {

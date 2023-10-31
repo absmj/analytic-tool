@@ -87,6 +87,7 @@
                                         <label class="form-label">Legendası</label>
                                         <input id="legend" type="text" class="form-control" required>
                                     </div>
+                                    <hr>
                                     <div class="col-12" data-chart="apex-2">
                                         <div id="chart-container" style="position:relative;">
                                         </div>
