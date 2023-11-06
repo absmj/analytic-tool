@@ -8,6 +8,7 @@ class Reports extends BaseController
 	{
 		parent::__construct();
 		$this->load->model("Report_model", "report");
+		$this->load->model("Folder_model", "folder");
 	}
 
 	public function create()
@@ -34,18 +35,24 @@ class Reports extends BaseController
 			"vendor/pivottable/pivottable.js",
 			"vendor/apexcharts/apexcharts.js",
 			"vendor/pivottable/apex.js",
-		])->set("vendorStyles", [
-			"vendor/codemirror/codemirror.css",
-			"vendor/codemirror/hint.css",
-			"vendor/pivottable/pivot.css"
 		])
+			->set("vendorStyles", [
+				"vendor/codemirror/codemirror.css",
+				"vendor/codemirror/hint.css",
+				"vendor/pivottable/pivot.css"
+			])
 			->set("scripts", [
 				"js/steps.js"
+			])
+			->set("styles", [
+				"css/folder.css"
 			]);
 
 
 
-		$this->page("reports/create");
+		$data['folders'] = $this->folder->get_folders();
+
+		$this->page("reports/create", $data);
 	}
 
 

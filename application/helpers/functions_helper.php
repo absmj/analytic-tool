@@ -43,4 +43,52 @@ if(!function_exists('post')) {
     }
 }
 
+if(!function_exists("folderStructure")) {
+    function folderStructure($folders, $parent = null)
+    {
+        $result = [];
+
+        foreach ($folders as $folder) {
+            if ($folder['parent_folder_id'] == $parent) {
+                $children = folderStructure($folders, $folder['folder_id']);
+
+                if ($children) {
+                    $folder['children'] = $children;
+                }
+
+                $result[] = $folder;
+            }
+        }
+
+        return $result;
+    }
+}
+
+if(!function_exists("generateFolderStructure")) {
+    function generateFolderStructure($folder) {
+        echo '<li>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <i class="bi bi-folder-fill"></i> ' . htmlspecialchars($folder['folder_name']) . ' (' . count($folder['children'] ?? []) . ')
+                    </div>
+                    <div data-id='.$folder['folder_id'].'>
+                        <i id="createFolder" class="text-primary bi bi-folder-plus"></i>
+                        <i id="deleteFolder" class="text-danger bi bi-folder-minus"></i> 
+                    </div>
+                </div>'
+                ;
+
+        if (!empty($folder['children'])) {
+            echo '<div class="arrow"><i class="bi bi-chevron-down"></i></div>';
+            echo '<ul class="collapsed">';
+            foreach ($folder['children'] as $child) {
+                generateFolderStructure($child);
+            }
+            echo '</ul>';
+        }
+
+        echo '</li>';
+    }
+}
+
 ?>
