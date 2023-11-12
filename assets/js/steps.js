@@ -75,22 +75,28 @@ const steps = {
         if (/(update|insert|delete|truncate|drop|alter|create|revoke|commit|rollback)/muis.test(this.data.sql))
           throw new Error("Hesabatın SQL sorğusu düzgün deyil. Bazadan yalnız məlumatların oxunması mümkündür!");
 
+        if (!this.data.report_folder)
+          throw new Error("Hesabat qovluğu seçilməyib!");
+
         if (!this.data.sql)
           throw new Error("SQL-in işləyəcəyi baza seçilməyib!");
+
+        if (!this.data.cron_job)
+          throw new Error("İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!");
 
         return true;
       },
 
-      async nextStage(callback) {
+      async nextStage(callback, step) {
         const data = await this.create(() => {
           callback();
-        })
+        }, step)
 
         return data
       },
 
-      async create(callback) {
-        const response = await $.post("/reports/create", { ...this.data, step: this.current });
+      async create(callback, step = 0) {
+        const response = await $.post("/reports/create", { ...this.data, step });
         callback();
         return response;
       }
@@ -100,6 +106,7 @@ const steps = {
     {
       id: 'steptwo',
       data: null,
+      that: null,
       container: null,
       generateTable() {
         const table = document.getElementById("table-data")
@@ -112,16 +119,15 @@ const steps = {
       },
 
       nextStage(callback) {
-        callback();
-        return this.data
+        return this.that.steps[0].nextStage(callback, 1)
       },
 
-      mounted() {
+      mounted(that) {
         if (!this.container) {
           this.container = document.getElementById(this.id)
           this.generateTable()
         }
-
+        this.that = that;
         this.container.classList.remove("d-none")
       },
     },
@@ -483,13 +489,26 @@ const steps = {
         }
 
 
+        this.nextButton.setAttribute('disabled', true)
+        this.nextButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`
+        const runOrSave = this.currentStep.data['run_or_save'] == 'on';
 
         const data = await this.currentStep.nextStage(() => {
-          this.step = this.nextStep
-        });
+          if(runOrSave) {
+            this.nextButton.removeAttribute('disabled')
+            this.step = this.nextStep
+            this.nextButton.innerHTML = 'Yadda saaxla'
+          }
+        }, this.current);
+        
+        if(runOrSave) {
+          this.currentStep.data = data.data
+          this.currentStep.mounted(this);
+        } else {
+          this.nextButton.classList.add("btn-success")
+          this.nextButton.innerHTML = data.message;
+        }
 
-        this.currentStep.data = data
-        this.currentStep.mounted(this);
       })
     })
 
@@ -497,6 +516,8 @@ const steps = {
       e.preventDefault();
       e.stopPropagation();
       this.step = this.prevStep
+      this.nextButton.classList.remove('btn-success');
+      this.nextButton.removeAttribute('disabled')
       this.currentStep.mounted();
     })
   },
@@ -545,9 +566,9 @@ const steps = {
     }
 
     if (this.current > 0) {
-      this.prevButton.classList.remove("invisible")
+      // this.prevButton.classList.remove("invisible")
     } else {
-      this.prevButton.classList.add("visible")
+      // this.prevButton.classList.add("visible")
     }
   },
 
@@ -555,7 +576,7 @@ const steps = {
     try {
       return await callback()
     } catch (e) {
-      this.exception = message || `${steps.current + 1} nömrəli mərhələdə xəta baş verdi:<br>${e.message || (`${e.status}: ${e.statusText}`)}`;
+      this.exception = message || `${steps.current + 1} nömrəli mərhələdə xəta baş verdi:<br>${e.message || e.responseJSON.message || (`${e.status}: ${e.statusText}`)}`;
     } finally {
 
     }
@@ -569,7 +590,7 @@ const steps = {
         const formData = new FormData(form)
         const ff = Object.fromEntries(formData)
         this.currentStep.data = { ...this.currentStep.data, ...ff }
-
+        
         if (!this.currentStep.validity() && !form.checkValidity()) {
           try {
             form.reportValidity();
@@ -580,7 +601,7 @@ const steps = {
           }
         }
       }
-
+      
       await callback()
     })
   },

@@ -1,6 +1,8 @@
 <?php
 
-class Folder_model extends CI_Model
+require_once "common/CRUD.php";
+
+class Folder_model extends CRUD
 {
     // Table name
     private $table = 'folders';
@@ -12,7 +14,7 @@ class Folder_model extends CI_Model
     }
 
     // Get folder hierarchy
-    public function get_folders()
+    public function list()
     {
         $query = $this->db->query("
             WITH RECURSIVE FolderCTE AS (
@@ -32,31 +34,5 @@ class Folder_model extends CI_Model
         ");
 
         return $query->result_array();
-    }
-
-    // Insert new folder
-    public function insert_folder($data)
-    {
-        $this->db->insert($this->table, $data);
-        return $this->db->insert_id();
-    }
-
-    // Update folder
-    public function update_folder($folder_id, $data)
-    {
-        $this->db->where('folder_id', $folder_id);
-        $this->db->update($this->table, $data);
-        return $this->db->affected_rows();
-    }
-
-    // Delete folder and its children
-    public function delete_folder($folder_id)
-    {
-        $this->db->where('folder_id', $folder_id);
-        $this->db->delete($this->table);
-
-        // You might also want to handle deleting children here
-
-        return $this->db->affected_rows();
     }
 }

@@ -21,24 +21,21 @@
                 <div class="card p-4">
                     <!-- Browser Default Validation -->
                     <form id="stepone" name="stepone-form" class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Hesabatın adı <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Hesabatın sistemdə saxlanılacağı adı ifadə edir."></i></label>
                             <input value="test" model="Hesabatın adı" type="text" class="form-control" name="name" required>
                         </div>
 
-                        <div class="col-md-3">
-                            <label for="validationDefault01" class="form-label d-flex justify-content-between">Qovluq <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yerləşmə qovluğu, hesabatların tematika və ya digər meyarlar üzrə təsnifləşdirmə üçün nəzərdə tutulub.<br><a href='#' class='nav-link'>Yeni qovluğu yarat</a>"></i></label>
-                            <button id='folder-select' type="button" class="btn btn-primary d-none" data-bs-toggle="modal" data-bs-target="#folder-tree">S</button>
-                            <select onmousedown="(function(e){ e.preventDefault(); this.blur(); window.focus(); document.getElementById('folder-select').click() })(event, this)" name="database" class="form-select" required model="folder">
-                                <option disabled value="">Choose...</option>
-                                <?php foreach (dblist() as $db) : ?>
-                                    <option selected value="<?= $db ?>"><?= $db ?></option>
-                                <?php endforeach ?>
+                        <div class="col-md-6">
+                            <input type="hidden" name="folder_name">
+                            <label for="validationDefault01" class="form-label d-flex justify-content-between">Qovluq <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yerləşmə qovluğu, hesabatların tFolderematika və ya digər meyarlar üzrə təsnifləşdirmə üçün nəzərdə tutulub.<br><a href='#' class='nav-link'>Yeni qovluğu yarat</a>"></i></label>
+                            <select onmousedown="(function(e){ e.preventDefault(); this.blur(); window.focus(); document.getElementById('folder-select').click() })(event, this)" name="report_folder" class="form-select" required id="folder">
+                                <option selected value="">Choose...</option>
                             </select>
 
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="validationDefault04" class="form-label d-flex justify-content-between">Baza <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra ediləcəyi bazanı seçin."></i></label>
                             <select name="database" class="form-select" required model="Baza">
                                 <option disabled value="">Choose...</option>
@@ -48,29 +45,38 @@
                             </select>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="validationDefault04" class="form-label d-flex justify-content-between">İşləmə tezliyi <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra edilmə tezliyi, hesabatın avtomatik işləyəcəyi tarixləri bildirir. Günlük icra edilmə səhər 9<sup>00</sup>, digərləri isə başlama tarixlərində icra ediləcək."></i></label>
-                            <select class="form-select" name="cron_frequency">
-                                <option value="s">Bir dəfə</option>
-                                <option value="0 9 * * *">Günlük</option>
-                                <option value="0 0 * * 0">Həftəlik</option>
-                                <option selected value="0 0 1 * *">Aylıq</option>
-                                <option value="0 0 1 1,4,7,10 *">Rüblük</option>
-                                <option value="0 0 1 1,7 *">6 aylıq</option>
-                                <option value="0 0 1 1 *">İllik</option>
+                            <select class="form-select" name="cron_frequency" onchange="cron(event)">
+                                <?php foreach($crons as $cron): ?>
+                                <option value="<?=$cron['job']?>"><?=$cron['title']?></option>                                
+                                <?php endforeach?>
                                 <option value="">Fərdi</option>
                             </select>
                         </div>
 
+                        <div id="special-cron" class="col-md-6 d-none">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="cron-job" class="form-label d-flex justify-content-between">Cron job <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Daxil edilən məlumatlar CRON job sintaksinı uyğun olmalıdır."></i></label>
+                                    <input value="test" type="text" class="form-control" name="cron_job">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="cron-title" class="form-label d-flex justify-content-between">Cron title <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Məlumat daxil edilmədikdə, cron-job olaraq qəbul ediləcək."></i></label>
+                                    <input value="test" type="text" class="form-control" name="cron_title">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12">
                             <div class="col-6 form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="run-or-save" id="run-or-save">
+                                <input class="form-check-input" type="checkbox" name="run_or_save" id="run-or-save">
                                 <label for="run-or-save">Nəticəyə baxdıqdan sonra, yadda saxla <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Nəticə əldə edilmədikdə, yadda saxlanılma yerinə yetirilməyəcək."></i></label>
                             </div>
                             <hr>
                             <div class="">
                                 <label for="sql" class="form-label d-flex justify-content-between mb-1">SQL <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yazılmış sorğular yalnız məlumat əldə edilməsi üçün nəzərdə tutulmalıdır"></i></label>
-                                <textarea model="SQL sorğu" model="sql" class="form-control" id="sql" style="height: 100px;"></textarea>
+                                <textarea model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
                             </div>
                         </div>
                     </form>
@@ -135,7 +141,7 @@
 
                     <div id="fields"></div>
 
-                    <div id="navigation-steps" class="d-flex justify-content-between">
+                    <div id="navigation-steps" class="d-flex justify-content-between mt-2">
                         <button id="prev" class="btn btn-warning invisible">Əvvəlki</button>
                         <button id="next" class="btn btn-primary">Növbəti</button>
                     </div>
@@ -151,7 +157,17 @@
 
 
         </div>
-
+        
+        <script>
+            const cron = (e) => {
+                const specialC = document.getElementById('special-cron');
+                if(!e.target.value) {
+                    specialC.classList.remove("d-none")
+                } else {
+                    specialC.classList.add("d-none")
+                }
+            }
+        </script>
     </section>
 
     <?php $this->load->view("modals/folder")?>
