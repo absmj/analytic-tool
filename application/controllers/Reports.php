@@ -17,7 +17,8 @@ class Reports extends BaseController
 
 	public function index()
 	{
-		dd($this->report->list());
+		$data['reports'] = $this->report->list();
+		$this->page("reports/index", $data);
 	}
 
 	public function create()

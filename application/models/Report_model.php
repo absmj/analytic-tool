@@ -9,21 +9,25 @@ class Report_model extends CRUD {
 
     public function list($limit = 10) {
         return $this->db
-                ->select("{$this->table}.*, 
+                ->select("r.*, 
                             q.id query_id, 
                             q.sql,
                             q.db,
                             q.created_at query_created, 
                             c.job,
-                            c.title,
+                            c.title cron,
                             f.id file_id,
-                            f.name file_name
+                            f.name file_name,
+                            f.created_at last_file,
+                            fo.folder_name folder
                         ")
-                ->join("queries q", "{$this->table}.query_id = q.id")
-                ->join("files f", "f.query_id = {$this->table}.id", "left")
+                ->join("queries q", "r.query_id = q.id", "left")
+                ->join("files f", "f.query_id = r.id", "left")
                 ->join("crons c", "c.id = q.cron_id")
+                ->join("folders fo", "r.folder_id = fo.folder_id")
+                ->from($this->table . " r")
                 ->limit($limit)
-                ->get($this->table)
+                ->get()
                 ->result_array();
     }
 
