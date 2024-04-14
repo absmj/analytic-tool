@@ -13,12 +13,13 @@ class Reports extends BaseController
 		$this->load->model("Query_model", "query");
 		$this->load->model("File_model", "file");
 		$this->load->model("Cron_model", "cron");
+		$this->load->model("Job_model", "job");
 	}
 
 	public function index()
 	{
 		$data['reports'] = $this->report->list();
-		$this->page("reports/index", $data);
+		$this->page("index", $data);
 	}
 
 	public function create()
@@ -60,13 +61,65 @@ class Reports extends BaseController
 			]);
 
 		$data['folders'] = $this->folder->list();
+		// dd($data['folders']);
 		$data['crons'] = $this->cron->list();
 
-		$this->page("reports/create", $data);
+		$this->page("form", $data);
 	}
 
+	public function get($report_id) {
+		$data['report'] = $this->report->getById($report_id);
+	}
 
-	private function saveReport($data)
+	public function edit($report_id) {
+		$data['isEdit'] = true;
+		if (isPostRequest()) {
+			try {
+				$data = $this->report->run(post('database'), post('sql'));
+				if(post('run_or_save') == 'on' && post("step") == 0) {
+					if(empty($data)) {
+						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
+					} else {
+						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $data);
+					}
+				} else {
+					$this->saveReport($data, $report_id);
+				}
+			} catch(Exception $e) {
+				echo BaseResponse::error("Hesabatın icra edilməsi zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
+			} finally {
+				exit;
+			}
+		}
+		$this->set("vendorScripts", [
+			"vendor/codemirror/codemirror.js",
+			"vendor/codemirror/sql/sql.js",
+			"vendor/codemirror/match-brackets.js",
+			"vendor/codemirror/hint.js",
+			"vendor/codemirror/sql/hint.js",
+		])
+			->set("vendorStyles", [
+				"vendor/codemirror/codemirror.css",
+			])
+			->set("scripts", [
+				"js/steps.js"
+			])
+			->set("styles", [
+				"css/folder.css"
+			]);
+		$data['report'] = $this->report->get($report_id);
+		$data['folders'] = $this->folder->list();
+
+		$data['crons'] = $this->cron->list();
+		// dd($data);
+		$this->page("form", $data);
+	}
+
+	public function delete($report_id) {
+
+	}
+
+	private function saveReport($data, $base = null, $isCron = false)
 	{
 		try {
 			if(!empty($data)) {
@@ -89,8 +142,13 @@ class Reports extends BaseController
 				$report = $this->report->insert([
 					"name" => post("name"),
 					"query_id" => $query,
-					"folder_id" => post("report_folder")
+					"folder_id" => post("report_folder"),
+					"base" => $base ?? 0
 				]);
+
+				if($base > 0) {
+					$this->report->update($base, ['is_deleted' => true]);
+				}
 
 				// File operation
 				$folder = APPPATH . "reports";
@@ -113,12 +171,21 @@ class Reports extends BaseController
 					}
 					
 					$file = $this->file->insert([
-						"query_id" => $query,
-						"name" => $report_name,
-						"location" => $report_folder
+						"name" => $csv,
+						"location" => $report_folder,
+						"folder_id" => post("report_folder"),
+						"type" => "csv"
 					]);
 
-					echo BaseResponse::ok("Hesabat yaradıldı!", $file . "::" . $csv);
+
+					$job = $this->job->insert([
+						"file_id" => $file,
+						"query_id" => $query,
+						"report_id" => $report,
+						"is_cron" => $isCron
+					]);
+
+					echo BaseResponse::ok("Hesabat ".($base > 0 ? 'redaktə edildi' : 'yaradıldı')."!", $file . "::" . $csv);
 				} else {
 					throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 				}
@@ -134,4 +201,17 @@ class Reports extends BaseController
 			exit;
 		}
 	}
+
+	public function restore($id, $old) {
+		$restore = $this->report->getById($old);
+		$this->report->update($id, ["is_deleted" => true]);
+		$report = $this->report->insert([
+			"name" => $old["name"],
+			"query_id" => $old['query'],
+			"folder_id" => $old['folder_id'],
+			"base" => $id 
+		]);
+		echo BaseResponse::ok("Success", $report);
+	}
+
 }

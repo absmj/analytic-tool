@@ -14,15 +14,25 @@
     
     <!-- Vendor Stylesheets Files -->
     <?php foreach ($this->vendorStyles as $style) : ?>
-        <link rel="stylesheet" href="<?= $style ?>">
+        <link type="text/css" rel="stylesheet" href="<?= $style ?>">
         </script>
     <?php endforeach ?>
+    
 
     <!-- Page's JS File -->
     <?php foreach ($this->styles ?? [] as $style) : ?>
         <link rel="stylesheet" href="<?= $style ?>">
         </script>
     <?php endforeach ?>
+
+    <!-- Vendor JS Files -->
+    <?php foreach($this->vendorScripts ?? [] as $script): ?>
+    <script src="<?=$script?>"></script>
+    <?php endforeach ?>
+
+    <script>
+        const BASE_URL = `<?= BASE_URL_REQUEST ?>`
+    </script>
 </head>
 
 <body>

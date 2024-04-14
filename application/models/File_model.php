@@ -5,5 +5,4 @@ class File_model extends CRUD {
 
     protected $table = 'files';
 
-
 }

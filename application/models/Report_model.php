@@ -16,23 +16,46 @@ class Report_model extends CRUD {
                             q.created_at query_created, 
                             c.job,
                             c.title cron,
-                            f.id file_id,
-                            f.name file_name,
-                            f.created_at last_file,
+                            j.date last_file,
                             fo.folder_name folder
                         ")
                 ->join("queries q", "r.query_id = q.id", "left")
-                ->join("files f", "f.query_id = r.id", "left")
+                ->join("jobs j", "j.report_id = r.id", "left")
                 ->join("crons c", "c.id = q.cron_id")
                 ->join("folders fo", "r.folder_id = fo.folder_id")
+                ->where("r.is_deleted", false)
                 ->from($this->table . " r")
                 ->limit($limit)
+                ->order_by("id", "desc")
                 ->get()
                 ->result_array();
     }
 
     public function get($id) {
-        return $this->db->where('id', $id)->where('is_deleted', false)->get($this->table)->row_array();
+        return $this->db->select("r.*, q.sql, q.cron_id, f.folder_id, f.folder_name")->where('r.id', $id)
+                        ->join("queries q", "q.id=r.query_id")
+                        ->join("folders f", "f.folder_id = r.folder_id")
+                        ->get($this->table . " r")->row_array();
+    }
+
+    public function history($id) {
+        return $this->db->query("
+                    WITH RECURSIVE history AS (
+                        SELECT id, name, base, id as start_id, query_id, 0 AS level
+                        FROM reports
+                        WHERE base = 0
+
+                        UNION ALL
+
+                        SELECT r.id, r.name, r.base, his.start_id, r.query_id, his.level + 1
+                        FROM history his
+                        JOIN reports r ON r.base = his.id
+                    )
+            select * from reports join (select unnest(children) history_id from (select (array_agg(id order by level)) as children
+            from history
+            group by start_id) a where ? = ANY(a.children)) on history_id=id order by id desc;
+        
+        ", [$id])->result_array();
     }
 
     public function run($database, $sql) {
@@ -44,5 +67,14 @@ class Report_model extends CRUD {
         }
     }
 
-    // Additional methods as needed
+    public function getReportFiles($report_id) {
+        return $this->db->select("f.id, f.folder_id, f.name, j.date, j.is_cron, f.location, f.created_at,f.type, r.id")
+                    ->from($this->table . " r")
+                    ->join("jobs j", "j.report_id=r.id")
+                    ->join("files f", "f.id = j.file_id")
+                    ->order_by("f.id", "desc")
+                    ->where("r.id", $report_id)
+                    ->get()
+                    ->result_array();
+    }
 }

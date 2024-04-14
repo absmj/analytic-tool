@@ -48,8 +48,8 @@ const steps = {
               }
             }
           });
-
-          editor.setValue("select * from train limit 10")
+          
+          editor.setValue(currentSql || '')
 
           editor.on('blur', () => {
             this.data.sql = editor.getValue()
@@ -96,7 +96,7 @@ const steps = {
       },
 
       async create(callback, step = 0) {
-        const response = await $.post("/reports/create", { ...this.data, step });
+        const response = await $.post(`/reports/${isEdit ? `edit/${reportId}` : 'create'}`, { ...this.data, step });
         callback();
         return response;
       }
@@ -461,12 +461,8 @@ const steps = {
   set exception(e) {
     this.error = e;
     if (e) {
-      this.errorElement.classList.remove("d-none")
-      this.errorElement.classList.add("fade", "show")
-      this.render('error')
+      uiInterface.error = e
       throw new Error(e);
-    } else {
-      this.errorElement.classList.add("d-none")
     }
 
   },
@@ -507,8 +503,8 @@ const steps = {
         } else {
           this.nextButton.classList.add("btn-success")
           this.nextButton.innerHTML = data.message;
+          uiInterface.success = true
         }
-
       })
     })
 
@@ -574,11 +570,12 @@ const steps = {
 
   async tryOrThrow(callback, message = null, loading = false) {
     try {
+      uiInterface.loading = true
       return await callback()
     } catch (e) {
       this.exception = message || `${steps.current + 1} nömrəli mərhələdə xəta baş verdi:<br>${e.message || e.responseJSON.message || (`${e.status}: ${e.statusText}`)}`;
     } finally {
-
+      uiInterface.loading = false
     }
   },
 

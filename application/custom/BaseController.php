@@ -36,6 +36,7 @@ class BaseController extends CI_Controller {
 
         $this->styles[] = BASE_PATH . "assets/css/style.css";
         $this->scripts[] = BASE_PATH . "assets/js/main.js";
+        $this->scripts[] = BASE_PATH . "assets/js/ui.js";
 
         parent::__construct();
     }
@@ -46,8 +47,12 @@ class BaseController extends CI_Controller {
             $this->sidebar();
         }
 
-        $this->load->view("pages/" . $view, $data, $json);
+        $this->load->view("pages/" . $this->defaultView(). $view, $data, $json);
         $this->footer();
+    }
+
+    public function view($view, $data = [], $json = false) {
+        return $this->load->view("pages/" . $this->defaultView(). $view, $data, $json);
     }
 
     private function sidebar() {
@@ -76,4 +81,7 @@ class BaseController extends CI_Controller {
         return $this;
     }
 
+    private function defaultView() {
+        return (get_class_vars($this::class)['view'] ?? strtolower(get_class($this))) . "/";
+    }
 }

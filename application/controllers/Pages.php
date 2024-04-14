@@ -2,26 +2,31 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 require_once APPPATH . "custom/BaseController.php";
 
-class Dashboard extends BaseController
+class Pages extends BaseController
 {
-	protected $view = "dashboards";
+    protected $view = '';
 
 	public function __construct()
 	{
 		parent::__construct();
-
+        $this->load->model("Page_model", "page");
+        $this->title = "Səhifələr";
 	}
 
 	public function index()
 	{
-        $this->page("dashboards/index", []);
+        $data['pages'] = $this->page->list();
+        $this->page("index", $data);
+	}
+
+	public function get($id) {
+		$data['page'] = $this->page->get($id);
+		dd($data['page']);
 	}
 
 	public function create($report_id)
 	{
 		$this->load->model("Folder_model", "folder");
-		$this->load->model("Report_model", "report");
-
 		$this->set("styles", [
 				"css/folder.css"
 			])
@@ -55,7 +60,6 @@ class Dashboard extends BaseController
 		$this->title = "Səhifə yaradılması";
 
 		$data['folders'] = $this->folder->list();
-		$data['files'] = $this->report->getReportFiles($report_id);
 
 		if(isPostRequest()) {
 			$post = json_decode(file_get_contents("php://input"), 1);

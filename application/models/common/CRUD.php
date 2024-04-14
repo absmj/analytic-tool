@@ -25,6 +25,12 @@ class CRUD extends CI_Model {
         return $this->db->insert_id();
     }
 
+    public function insertBatch($data) {
+        if(!$this->db->insert_batch($this->table, $data))
+            throw new Exception(get_called_class() . " :: Yaradılma zamanı xəta baş verdi", 500);
+        return $this->db->insert_id();
+    }
+
     public function update($id, $data) {
         if(!$this->db->where('id', $id)->update($this->table, $data))
             throw new Exception(get_called_class() . " :: Yeniləmə zamanı xəta baş verdi", 500);
@@ -43,7 +49,7 @@ class CRUD extends CI_Model {
         preg_match("/((find|get)By)(.*)/", $name, $matches);
 
         if(isset($matches[1])) {
-            return $this->{$matches[1]}(strtolower($matches[3]), $arguments);
+            return $this->{$matches[1]}(camelToSnake($matches[3]), $arguments);
         }
     }
 }

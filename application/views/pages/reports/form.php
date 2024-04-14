@@ -4,7 +4,6 @@
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.html">Hesabatlar</a></li>
-                <li class="breadcrumb-item"><?= $this->title ?></li>
                 <li id="stepDescription" class="breadcrumb-item"></li>
             </ol>
         </nav>
@@ -23,16 +22,20 @@
                     <form id="stepone" name="stepone-form" class="row g-3">
                         <div class="col-md-6">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Hesabatın adı <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Hesabatın sistemdə saxlanılacağı adı ifadə edir."></i></label>
-                            <input value="test" model="Hesabatın adı" type="text" class="form-control" name="name" required>
+                            <input value="<?= $report['name'] ?? ''?>" model="Hesabatın adı" type="text" class="form-control" name="name" required>
                         </div>
 
                         <div class="col-md-6">
-                            <input type="hidden" name="folder_name">
+                            <input type="hidden" name="folder_name" value="<?=$report['folder_name'] ?? ''?>">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Qovluq <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yerləşmə qovluğu, hesabatların tFolderematika və ya digər meyarlar üzrə təsnifləşdirmə üçün nəzərdə tutulub.<br><a href='#' class='nav-link'>Yeni qovluğu yarat</a>"></i></label>
                             <select onmousedown="(function(e){ e.preventDefault(); this.blur(); window.focus(); document.getElementById('folder-select').click() })(event, this)" name="report_folder" class="form-select" required id="folder">
+                                <?php if(isset($report['folder_name'])):?>    
+                                <option selected value="<?=$report['folder_id']?>"><?=$report['folder_name']?></option>
+                                <?php else:?>
                                 <option selected value="">Choose...</option>
+                                <?php endif?>
                             </select>
-
+                            <button type="button" data-bs-toggle="modal" data-bs-target="#folder-tree" id="folder-select" class="d-none"></button>
                         </div>
 
                         <div class="col-md-3">
@@ -40,7 +43,7 @@
                             <select name="database" class="form-select" required model="Baza">
                                 <option disabled value="">Choose...</option>
                                 <?php foreach (dblist() as $db) : ?>
-                                    <option selected value="<?= $db ?>"><?= $db ?></option>
+                                    <option <?=$db == ($report['db'] ?? '') ? 'selected' : ''?> value="<?= $db ?>"><?= $db ?></option>
                                 <?php endforeach ?>
                             </select>
                         </div>
@@ -49,7 +52,7 @@
                             <label for="validationDefault04" class="form-label d-flex justify-content-between">İşləmə tezliyi <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra edilmə tezliyi, hesabatın avtomatik işləyəcəyi tarixləri bildirir. Günlük icra edilmə səhər 9<sup>00</sup>, digərləri isə başlama tarixlərində icra ediləcək."></i></label>
                             <select class="form-select" name="cron_frequency" onchange="cron(event)">
                                 <?php foreach($crons as $cron): ?>
-                                <option value="<?=$cron['job']?>"><?=$cron['title']?></option>                                
+                                <option <?=$db == ($report['cron_id'] ?? '')? 'selected' : ''?> value="<?=$cron['job']?>"><?=$cron['title']?></option>                                
                                 <?php endforeach?>
                                 <option value="">Fərdi</option>
                             </select>
@@ -76,7 +79,7 @@
                             <hr>
                             <div class="">
                                 <label for="sql" class="form-label d-flex justify-content-between mb-1">SQL <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yazılmış sorğular yalnız məlumat əldə edilməsi üçün nəzərdə tutulmalıdır"></i></label>
-                                <textarea model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
+                                <textarea value="<?=$report['sql'] ?? ''?>" model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
                             </div>
                         </div>
                     </form>
@@ -87,71 +90,11 @@
 
                         </div>
                     </div>
-
-                    <div id="stepthree" class="d-none">
-                        <div class="row">
-                            <div class="col-7">
-                                <div id="pivot" class="table-responsive"></div>
-                            </div>
-                            <div class="col-5">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <label class="form-label">Çartın tipi</label>
-                                        <select id="chartType" class="form-select" required>
-                                            <option value="line">Line</option>
-                                            <option value="bar">Bar</option>
-                                            <option value="column">Column</option>
-                                            <option value="pie">Pie</option>
-                                            <option value="area">Area</option>
-                                            <option value="histogram">Histogram</option>
-                                            <option value="scatter">Scatter</option>
-                                            <option value="bubble">Bubble</option>
-                                            <option value="combo">Combo</option>
-                                        </select>
-
-                                    </div>
-
-                                    <div class="col-6">
-                                        <label class="form-label">Legendası</label>
-                                        <input id="legend" type="text" class="form-control" required>
-                                    </div>
-                                    <hr>
-                                    <div class="col-12" data-chart="apex-2">
-                                        <div id="chart-container" style="position:relative;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="stepfour" class="d-none">
-                        <div class="row">
-                            <div class="col-4">
-                                <div id="info-report-labels"></div>
-                                <hr>
-                                <div id="info-report-columns"></div>
-                            </div>
-
-                            <div class="col-8" data-chart="apex-3">
-                                <div style="position:relative;" id="chart-container-preview"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="fields"></div>
-
-                    <div id="navigation-steps" class="d-flex justify-content-between mt-2">
-                        <button id="prev" class="btn btn-warning invisible">Əvvəlki</button>
-                        <button id="next" class="btn btn-primary">Növbəti</button>
-                    </div>
                 </div>
 
-            </div>
-
-            <div id="steptwo" class="col-12 d-none">
-                <div class="card p-4">
-
+                <div id="navigation-steps" class="d-flex justify-content-between mt-2">
+                        <button id="prev" class="btn btn-warning invisible">Əvvəlki</button>
+                        <button id="next" class="btn btn-primary">Növbəti</button>
                 </div>
             </div>
 
@@ -163,10 +106,14 @@
                 const specialC = document.getElementById('special-cron');
                 if(!e.target.value) {
                     specialC.classList.remove("d-none")
-                } else {
+                } else { 
                     specialC.classList.add("d-none")
                 }
             }
+
+            const isEdit = <?=isset($isEdit) ? 1 : 0 ?>;
+            const reportId = <?=$report['id'] ?? 0?>;
+            const currentSql = `<?=$report['sql'] ?? ''?>`;
         </script>
     </section>
 

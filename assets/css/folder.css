@@ -12,3 +12,13 @@
 .folder-tree .arrow:hover i { color: #292929; }
 .folder-tree li.expanded > ul { display: block; }
 .folder-tree li.expanded > .arrow { transform: rotate(0deg); }
+
+.file-explorer-file:hover {
+    background-color: rgba(53, 107, 242, 0.468);
+    border-radius: .324em;
+}
+
+.file-explorer-file[data-selected="1"] {
+    background-color: rgba(0, 153, 255, 0.765);
+    border-radius: .324em;
+}

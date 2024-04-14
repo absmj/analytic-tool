@@ -1231,3 +1231,40 @@ h6 {
   font-size: 13px;
   color: #012970;
 }
+
+[stage] {
+  display: none;
+}
+
+[stage='1'] {
+  display: block!important;
+}
+
+
+.page-wizard {
+  position: relative;
+
+  overflow: hidden;
+  border-radius: .56em;
+  height: calc(100vh - 250px);
+  padding: 2em;
+  overflow-y: auto;
+}
+
+
+.control-panel {
+  position: absolute;
+  background-color: rgba(120, 120, 120, 0.1);
+  overflow: hidden;
+  border-radius: .56em;
+  height: calc(100vh - 315px);
+  right: 2em;
+  opacity: 0.3;
+  transition: all 0.25s ease-in;
+  padding: 1em;
+}
+
+.control-panel:hover {
+  background-color: rgba(120, 120, 120, 0.1);
+  opacity: 1;
+}
