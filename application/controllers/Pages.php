@@ -21,7 +21,6 @@ class Pages extends BaseController
 
 	public function get($id) {
 		$data['page'] = $this->page->get($id);
-		dd($data['page']);
 	}
 
 	public function create($report_id)

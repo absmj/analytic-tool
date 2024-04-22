@@ -15,4 +15,4 @@
     </div>
     <section class="section contact">
     </section>
-</main>
+</main> 

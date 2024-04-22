@@ -7,19 +7,58 @@ class ChartVisualisation {
 
 
     get data() {
-        let x = new Set, y, labels, values = new Array(this.pivot.meta.vAmount), totals;
+        let row = new Set, 
+            col = new Set,
+            labels = null,
+            values = new Array(this.pivot.meta.vAmount),
+            colValues = {},
+            totals = {};
 
+        const colExists = this.pivot.meta.cAmount > 0;
+        const rowExists = this.pivot.meta.rAmount > 0;
+        let colIndex = 0, rowIndex = 0;
+        // console.log(this.pivot)
         totals = Object.values(this.pivot.data[0])
+        for(let di = 0; di < this.pivot.data.length; di++) {
+            const currentObject = this.pivot.data[di]
+            for(let obj in currentObject) {
+                if(/^r/.test(obj)) row.add(currentObject[obj])
+                if(/^c/.test(obj)) col.add(currentObject[obj])
+            }
+        }
+        
         for (let i = 0; i < values.length; i++) {
-            values[i] = new Array(this.pivot.data.length - 1)
-            this.pivot.data.slice(1).forEach((l, p) => {
-                x.add(...Object.keys(l).filter(f => /^r/.test(f)).map(k => l[k]))
+            values[i] = new Array((colExists && rowExists ? col.size + row.size  : this.pivot.data.length) - 1)
+            this.pivot.data.slice(1, colExists && rowExists ? col.size + row.size + 1 : this.pivot.data.length).forEach((l, p) => {
                 values[i][p] = (l["v" + i])
             })
         }
 
+        for (const item of this.pivot.data) {
+            const rKey = Object.keys(item).find(key => key.startsWith('r'));
+            const cKey = Object.keys(item).find(key => key.startsWith('c'));
+            const vKey = Object.keys(item).find(key => key.startsWith('v'));
+            
+            if (rKey && cKey && vKey) {
+                const rValue = item[rKey];
+                const cValue = item[cKey];
+                const vValue = item[vKey];
+                colValues[rValue] = colValues[rValue] || {};
+                colValues[rValue][cValue] = isNaN(vValue) ? 0 : vValue;
+            }
+        }
+
+        
+
+        // this.pivot.data.slice(1)
+        //                             .forEach((element, index) => {
+        //                                 values[this.pivot.meta['v' + index+'Name']] = [...Object.keys(element).filter(k => /^v/.test(k)).map(f => element[f])]
+        //                             })
+
+
         labels = Object.keys(this.pivot.meta).filter(f => /^v\d+Name/i.test(f)).map(l => this.pivot.meta[l])
-        return { x: Array.from(x), labels, values, totals }
+
+        return { x: Array.from(row), colValues, labels, values, totals }
     }
 
 }
@@ -46,10 +85,32 @@ class Apex extends ChartVisualisation {
     }
 
     get series() {
-        return this.data.labels.map((d, k) => ({
-            name: d,
-            data: this.data.values[k]
-        }))
+        if(Object.keys(this.data.colValues).length > 0) {
+            console.log(this.data.colValues)
+            const data = [];
+            const dataMap = new Map;
+
+            for(let i = 0; i < this.pivot.meta.vAmount; i++) {
+                let rowIndex = 0;
+                for (const rKey of Object.keys(this.data.colValues)) {
+                    const cObject = this.data.colValues[rKey];
+                    let colIndex = 0;
+                    for (const cKey of Object.keys(cObject)) {
+                        const vValue = cObject[cKey];
+                        data[colIndex] = ({ name: cKey, group: this.pivot.meta['v'+i+'Name'], data: [...Object.keys(this.data.colValues).map(v => Object.keys(this.data.colValues[v]).filter(a => a == cKey).map(b => this.data.colValues[v][b])[0])] });
+                        colIndex++;
+                    }
+                    dataMap.set(i, data)
+                }
+
+            }
+            return Array.from(dataMap)
+        } else {
+            return this.data.labels.map((d, k) => ({
+                name: d,
+                data: this.data.values[k]
+            }))
+        }
     }
 
     get area() {
@@ -75,7 +136,7 @@ class Apex extends ChartVisualisation {
                 curve: 'straight'
             },
             subtitle: {
-                text: 'Price Movements',
+                text: '',
                 align: 'left'
             },
             labels: this.data.labels,
@@ -97,12 +158,10 @@ class Apex extends ChartVisualisation {
             chart: {
                 type: 'bar',
                 height: this.height,
+                stacked: Object.keys(this.data.colValues).length > 0,
                 zoom: {
                     enabled: false
                 }
-            },
-            dataLabels: {
-                enabled: false
             },
             plotOptions: {
                 bar: {
@@ -116,9 +175,6 @@ class Apex extends ChartVisualisation {
                 style: {
                     fontSize: '18px'
                 }
-            },
-            dataLabels: {
-                enabled: false
             },
             stroke: {
                 show: true,
@@ -446,5 +502,9 @@ class Apex extends ChartVisualisation {
         this.destroy()
         this.apex = new ApexCharts((this.el), JSON.parse(data))
         this.render(data)
+    }
+
+    renderOptions(type) {
+        return 
     }
 }

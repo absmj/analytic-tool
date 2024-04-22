@@ -24,7 +24,7 @@
         opacity: 0.8;
     }
 
-    [data-action='not-changed'] > div:hover {
+    [data-action] > div:hover {
         opacity: 1;
     }
 

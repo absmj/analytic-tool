@@ -116,7 +116,8 @@ class Reports extends BaseController
 	}
 
 	public function delete($report_id) {
-
+		$data = $this->report->update($report_id, ['is_deleted' => true]);
+		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
 	private function saveReport($data, $base = null, $isCron = false)
@@ -153,8 +154,8 @@ class Reports extends BaseController
 				// File operation
 				$folder = APPPATH . "reports";
 				$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
-				$report_name = preg_replace("/[^a-zA-Z0-9-_]/m", "_", post("name"));
-				$csv = $report_folder . DIRECTORY_SEPARATOR . $report_name. $report .  ".csv";
+				$report_name = post("name")."-".$report;
+				$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
 				$header = array_keys($data[0]);
 
 				// https://stackoverflow.com/a/2303377
@@ -171,8 +172,8 @@ class Reports extends BaseController
 					}
 					
 					$file = $this->file->insert([
-						"name" => $csv,
-						"location" => $report_folder,
+						"name" => $report_name,
+						"location" => $csv,
 						"folder_id" => post("report_folder"),
 						"type" => "csv"
 					]);
@@ -206,9 +207,9 @@ class Reports extends BaseController
 		$restore = $this->report->getById($old);
 		$this->report->update($id, ["is_deleted" => true]);
 		$report = $this->report->insert([
-			"name" => $old["name"],
-			"query_id" => $old['query'],
-			"folder_id" => $old['folder_id'],
+			"name" => $restore["name"],
+			"query_id" => $restore['query'],
+			"folder_id" => $restore['folder_id'],
 			"base" => $id 
 		]);
 		echo BaseResponse::ok("Success", $report);
