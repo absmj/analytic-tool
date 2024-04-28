@@ -32,7 +32,7 @@ class Report_model extends CRUD {
     }
 
     public function get($id) {
-        return $this->db->select("r.*, q.sql, q.cron_id, f.folder_id, f.folder_name")->where('r.id', $id)
+        return $this->db->select("r.*, q.sql, q.cron_id,q.db,q.params, f.folder_id, f.folder_name")->where('r.id', $id)
                         ->join("queries q", "q.id=r.query_id")
                         ->join("folders f", "f.folder_id = r.folder_id")
                         ->get($this->table . " r")->row_array();
@@ -58,10 +58,11 @@ class Report_model extends CRUD {
         ", [$id])->result_array();
     }
 
-    public function run($database, $sql) {
+    public function run($database, $sql, $params = []) {
         try {
             $this->load->database($database);
-            return $this->db->query($sql)->result_array();
+            $sql = preg_replace("/\{@.*?@\}/muis", "?", $sql);
+            return $this->db->query($sql, $params)->result_array();
         } catch(Exception $e) {
             throw new Exception($e);
         }

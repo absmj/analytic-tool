@@ -19,8 +19,26 @@ class Dashboard extends BaseController
 
 	public function create($report_id)
 	{
-		$this->load->model("Folder_model", "folder");
 		$this->load->model("Report_model", "report");
+
+		if(isPostRequest()) {
+			$post = json_decode(file_get_contents("php://input"), 1);
+			$this->load->model("Page_model", "page");
+			$this->load->model("Chart_model", "chart");
+			$page_id = $this->page->insert([
+				"template" => $this->input->get('template'),
+				"report_id" => $report_id
+			]);
+
+
+			foreach($post as &$value) {
+				$value['page_id'] = $page_id;
+			}
+
+			$data = $this->chart->insertBatch($post);
+			echo BaseResponse::ok("success", $data);
+			exit;
+		}
 
 		$this->set("styles", [
 				"css/folder.css"
@@ -30,7 +48,7 @@ class Dashboard extends BaseController
 				"vendor/datatables/datatables.css"
 				])			
 			->set("vendorScripts", [
-				"vendor/datatables/datatables.min.js",
+				"vendor/datatables/datatables.js",
 				"vendor/pivottable/pivottable.js"
 			])
 			->set("vendorScripts", [
@@ -53,30 +71,16 @@ class Dashboard extends BaseController
 				]);
 
 		$this->title = "Səhifə yaradılması";
+		$this->load->model("Query_model", "query");
+		$query = $this->report->get($report_id);
 
-		$data['folders'] = $this->folder->list();
-		$data['files'] = $this->report->getReportFiles($report_id);
-
-		if(isPostRequest()) {
-			$post = json_decode(file_get_contents("php://input"), 1);
-			$this->load->model("Page_model", "page");
-			$this->load->model("Chart_model", "chart");
-			$page_id = $this->page->insert([
-				"template" => $this->input->get('template'),
-				"report_id" => $report_id
-			]);
-
-
-			foreach($post as &$value) {
-				$value['page_id'] = $page_id;
-			}
-
-			$data = $this->chart->insertBatch($post);
-			echo BaseResponse::ok("success", $data);
-			exit;
+		if(!empty($query['sql'])) {
+			$result = $this->report->run($query['db'], $query['sql'], json_decode($query['params'], 1));
 		}
 
-		$this->page("create", $data);
+		$data['result'] = $result ?? [];
+
+		$this->page("create", $data, false);
 	}
 
 

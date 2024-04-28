@@ -19,21 +19,21 @@
             <div class="col-12">
                 <div class="card p-4">
                     <!-- Browser Default Validation -->
-                    <form id="stepone" name="stepone-form" class="row g-3">
+                    <form id="stepone" name="report-form" class="row g-3">
                         <div class="col-md-6">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Hesabatın adı <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Hesabatın sistemdə saxlanılacağı adı ifadə edir."></i></label>
-                            <input value="<?= $report['name'] ?? ''?>" model="Hesabatın adı" type="text" class="form-control" name="name" required>
+                            <input value="<?= $report['name'] ?? '' ?>" model="Hesabatın adı" type="text" class="form-control" name="name" required>
                         </div>
 
                         <div class="col-md-6">
-                            <input type="hidden" name="folder_name" value="<?=$report['folder_name'] ?? ''?>">
+                            <input type="hidden" name="folder_name" value="<?= $report['folder_name'] ?? '' ?>">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Qovluq <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yerləşmə qovluğu, hesabatların tFolderematika və ya digər meyarlar üzrə təsnifləşdirmə üçün nəzərdə tutulub.<br><a href='#' class='nav-link'>Yeni qovluğu yarat</a>"></i></label>
                             <select onmousedown="(function(e){ e.preventDefault(); this.blur(); window.focus(); document.getElementById('folder-select').click() })(event, this)" name="report_folder" class="form-select" required id="folder">
-                                <?php if(isset($report['folder_name'])):?>    
-                                <option selected value="<?=$report['folder_id']?>"><?=$report['folder_name']?></option>
-                                <?php else:?>
-                                <option selected value="">Choose...</option>
-                                <?php endif?>
+                                <?php if (isset($report['folder_name'])) : ?>
+                                    <option selected value="<?= $report['folder_id'] ?>"><?= $report['folder_name'] ?></option>
+                                <?php else : ?>
+                                    <option selected value="">Choose...</option>
+                                <?php endif ?>
                             </select>
                             <button type="button" data-bs-toggle="modal" data-bs-target="#folder-tree" id="folder-select" class="d-none"></button>
                         </div>
@@ -43,7 +43,7 @@
                             <select name="database" class="form-select" required model="Baza">
                                 <option disabled value="">Choose...</option>
                                 <?php foreach (dblist() as $db) : ?>
-                                    <option <?=$db == ($report['db'] ?? '') ? 'selected' : ''?> value="<?= $db ?>"><?= $db ?></option>
+                                    <option <?= $db == ($report['db'] ?? '') ? 'selected' : '' ?> value="<?= $db ?>"><?= $db ?></option>
                                 <?php endforeach ?>
                             </select>
                         </div>
@@ -51,9 +51,9 @@
                         <div class="col-md-3">
                             <label for="validationDefault04" class="form-label d-flex justify-content-between">İşləmə tezliyi <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra edilmə tezliyi, hesabatın avtomatik işləyəcəyi tarixləri bildirir. Günlük icra edilmə səhər 9<sup>00</sup>, digərləri isə başlama tarixlərində icra ediləcək."></i></label>
                             <select class="form-select" name="cron_frequency" onchange="cron(event)">
-                                <?php foreach($crons as $cron): ?>
-                                <option <?=$db == ($report['cron_id'] ?? '')? 'selected' : ''?> value="<?=$cron['job']?>"><?=$cron['title']?></option>                                
-                                <?php endforeach?>
+                                <?php foreach ($crons as $cron) : ?>
+                                    <option <?= $db == ($report['cron_id'] ?? '') ? 'selected' : '' ?> value="<?= $cron['job'] ?>"><?= $cron['title'] ?></option>
+                                <?php endforeach ?>
                                 <option value="">Fərdi</option>
                             </select>
                         </div>
@@ -72,14 +72,9 @@
                         </div>
 
                         <div class="col-12">
-                            <div class="col-6 form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="run_or_save" id="run-or-save">
-                                <label for="run-or-save">Nəticəyə baxdıqdan sonra, yadda saxla <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Nəticə əldə edilmədikdə, yadda saxlanılma yerinə yetirilməyəcək."></i></label>
-                            </div>
-                            <hr>
                             <div class="">
                                 <label for="sql" class="form-label d-flex justify-content-between mb-1">SQL <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yazılmış sorğular yalnız məlumat əldə edilməsi üçün nəzərdə tutulmalıdır"></i></label>
-                                <textarea value="<?=$report['sql'] ?? ''?>" model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
+                                <textarea value="<?= $report['sql'] ?? '' ?>" model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
                             </div>
                         </div>
                     </form>
@@ -93,30 +88,48 @@
                 </div>
 
                 <div id="navigation-steps" class="d-flex justify-content-between mt-2">
-                        <button id="prev" class="btn btn-warning invisible">Əvvəlki</button>
-                        <button id="next" class="btn btn-primary">Növbəti</button>
+                    <button data-step="0" id="next" onclick="formReport.run(this)" class="btn btn-primary">Növbəti</button>
                 </div>
             </div>
 
 
         </div>
-        
+
+        <div class="modal fade" id="queryparams" tabindex="-1" aria-labelledby="queryparams" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="qyerparamstitle">Query params</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form name="queryparams-form">
+
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button data-step="0" onclick="formReport.run(this)" id="run-query" type="button" class="btn btn-primary">Run</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script>
             const cron = (e) => {
                 const specialC = document.getElementById('special-cron');
-                if(!e.target.value) {
+                if (!e.target.value) {
                     specialC.classList.remove("d-none")
-                } else { 
+                } else {
                     specialC.classList.add("d-none")
                 }
             }
 
-            const isEdit = <?=isset($isEdit) ? 1 : 0 ?>;
-            const reportId = <?=$report['id'] ?? 0?>;
-            const currentSql = `<?=$report['sql'] ?? ''?>`;
+            const isEdit = <?= isset($isEdit) ? 1 : 0 ?>;
+            const reportId = <?= $report['id'] ?? 0 ?>;
+            const currentSql = `<?= $report['sql'] ?? '' ?>`;
         </script>
     </section>
 
-    <?php $this->load->view("modals/folder")?>
+    <?php $this->load->view("modals/folder") ?>
 
 </main>

@@ -26,8 +26,8 @@ class Reports extends BaseController
 	{
 		if (isPostRequest()) {
 			try {
-				$data = $this->report->run(post('database'), post('sql'));
-				if(post('run_or_save') == 'on' && post("step") == 0) {
+				$data = $this->report->run(post('database'), post('sql'), post('params'));
+				if(post("step") == 0) {
 					if(empty($data)) {
 						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
 					} else {
@@ -120,7 +120,7 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
-	private function saveReport($data, $base = null, $isCron = false)
+	private function saveReport($data, $base = null, $isCron = false, $toFile = false)
 	{
 		try {
 			if(!empty($data)) {
@@ -137,7 +137,8 @@ class Reports extends BaseController
 				$query = $this->query->insert([
 					"sql" => post("sql"),
 					"db" => post("database"),
-					"cron_id" => $cronJob
+					"cron_id" => $cronJob,
+					"params" => json_encode(post('params'))
 				]);
 
 				$report = $this->report->insert([
@@ -151,55 +152,54 @@ class Reports extends BaseController
 					$this->report->update($base, ['is_deleted' => true]);
 				}
 
-				// File operation
-				$folder = APPPATH . "reports";
-				$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
-				$report_name = post("name")."-".$report;
-				$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
-				$header = array_keys($data[0]);
+				$job = [
+					"query_id" => $query,
+					"report_id" => $report,
+					"is_cron" => $isCron
+				];
 
-				// https://stackoverflow.com/a/2303377
-				if(!file_exists($report_folder)) 
-					mkdir($report_folder, 0777, true);
-				
-				$fp = fopen($csv, 'w');
+				if($toFile) {
+					// File operation
+					$folder = APPPATH . "reports";
+					$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
+					$report_name = post("name")."-".$report;
+					$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
+					$header = array_keys($data[0]);
 
-				fputcsv($fp, $header);
-
-				if($fp) {
-					foreach($data as $d) {
-						fputcsv($fp, $d);
-					}
+					// https://stackoverflow.com/a/2303377
+					if(!file_exists($report_folder)) 
+						mkdir($report_folder, 0777, true);
 					
-					$file = $this->file->insert([
-						"name" => $report_name,
-						"location" => $csv,
-						"folder_id" => post("report_folder"),
-						"type" => "csv"
-					]);
+					$fp = fopen($csv, 'w');
 
+					fputcsv($fp, $header);
 
-					$job = $this->job->insert([
-						"file_id" => $file,
-						"query_id" => $query,
-						"report_id" => $report,
-						"is_cron" => $isCron
-					]);
+					if($fp) {
+						foreach($data as $d) {
+							fputcsv($fp, $d);
+						}
+						
+						$file = $this->file->insert([
+							"name" => $report_name,
+							"location" => $csv,
+							"folder_id" => post("report_folder"),
+							"type" => "csv"
+						]);
+						$job['file_id'] = $file;
 
-					echo BaseResponse::ok("Hesabat ".($base > 0 ? 'redaktə edildi' : 'yaradıldı')."!", $file . "::" . $csv);
-				} else {
-					throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
+					} else {
+						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
+					}
 				}
-				
-				return false;
+
+				$this->job->insert($job);
+				echo BaseResponse::ok("Hesabat ".($base > 0 ? 'redaktə edildi' : 'yaradıldı')."!");
 			} else {
 				throw new Exception("Nəticə boşdur", 400);
 			}
 		}
 		catch (Exception $e) {
 			echo BaseResponse::error("Hesabatın yaradılması zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
-		} finally {
-			exit;
 		}
 	}
 

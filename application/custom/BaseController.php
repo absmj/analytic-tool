@@ -6,6 +6,7 @@ class BaseController extends CI_Controller {
     public $vendorStyles;
     public $styles;
     public $scripts;
+    public $sidebar;
 
     function __construct()
     {
@@ -42,6 +43,7 @@ class BaseController extends CI_Controller {
     }
 
     public function page($view, $data = [], $sidebar = true, $json = false) {
+        $this->sidebar = $sidebar;
         $this->header();
         if($sidebar) {
             $this->sidebar();

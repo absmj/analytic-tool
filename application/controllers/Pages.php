@@ -20,7 +20,12 @@ class Pages extends BaseController
 	}
 
 	public function get($id) {
-		$data['page'] = $this->page->get($id);
+		$this->load->model("Chart_model", "chart");
+		$page = $this->page->get($id);
+		$charts = $this->chart->findByPageId($page['id']);
+		$data['charts'] = $charts;
+		$data['page'] = $page;
+		$page['']
 	}
 
 	public function create($report_id)

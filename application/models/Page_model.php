@@ -13,11 +13,11 @@ class Page_model extends CRUD {
     }
 
     public function get($id) {
-        return $this->db->select("p.*,c.*,j.date,r.name")
-                    ->from("charts c")
-                    ->join($this->table ." p", "p.id=c.page_id")
-                    ->join("jobs j", "j.report_id=p.report_id")
-                    ->join("reports r", "r.id=p.report_id")
+        return $this->db->select("p.id,p.title page_title,j.date,r.name,r.id report_id,q.sql")
+                    ->from($this->table ." p")
+                    ->join("(select * from jobs where report_id=p.report_id order by id desc limit 1) j", "j.report_id=p.report_id")
+                    ->join("queries q", "q.id = j.query_id")
+                    ->join("reports r", "r.id=j.report_id")
                     ->where("p.id", $id)
                     ->get()
                     ->result_array();

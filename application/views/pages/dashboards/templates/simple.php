@@ -4,6 +4,8 @@
         transition: all 0.23s ease-in-out;
     }
 
+ 
+
     .chart-wizard-actions {
         width: 100%;
         height: 100%;
@@ -46,10 +48,6 @@
 </style>
 
 <div class="main dashboard-template">
-    <div class="d-flex justify-content-end">
-        <button type="button" id="save-page" class="btn btn-success">Səhifəni yadda saxla</button>
-    </div>
-    <hr>
     <div class="row sparkboxes mt-4 mb-4 position-releative flex-nowrap chart-row">
         <!-- <div style="margin-top: -3em; margin-left: -1.8em" class="col-12 position-absolute d-flex justify-content-end action-panel">
             <button type="button" data-action="duplicate" class="btn btn-sm btn-light"><i class="bi bi-plus"></i></button>
@@ -156,7 +154,7 @@
     ]
 
     const dashboard = {
-        instances: null,
+        instances: [],
         async init() {
             this.instances = renderMockData(apexInsancesData)
             let k = 0;
@@ -164,7 +162,6 @@
                 $(i).parents("[data-action]").attr({
                     "data-target-modal": i
                 })
-
                 await this.instances[i].render();
                 const el = document.
                     querySelector(i).

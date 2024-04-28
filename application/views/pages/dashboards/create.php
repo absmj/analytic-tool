@@ -1,14 +1,20 @@
 <main id="main" class="main">
-    <div class="pagetitle">
-        <h1><?= $this->title ?></h1>
-        <nav>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index.html">Səhifələr</a></li>
-                <li class="breadcrumb-item"><?= $this->title ?></li>
-                <li class="breadcrumb-item step-description"></li>
-            </ol>
-        </nav>
-    </div><!-- End Page Title -->
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="pagetitle">
+            <h1><?= $this->title ?></h1>
+            <nav>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Səhifələr</a></li>
+                    <li class="breadcrumb-item"><?= $this->title ?></li>
+                    <li class="breadcrumb-item step-description"></li>
+                </ol>
+            </nav>
+        </div><!-- End Page Title -->
+
+        <div class="d-flex justify-content-end">
+            <button stage="2" type="button" id="save-page" class="btn btn-success">Səhifəni yadda saxla</button>
+        </div>
+    </div>
     <div id="error" class="alert alert-danger alert-dismissible d-none" role="alert">
         <template id="error"></template>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -27,7 +33,7 @@
                 </div>
             </div>
         </div> -->
-        <div class="col-12">
+        <!-- <div class="col-12">
             <div id="action" class="card">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="card-header step-description">
@@ -35,66 +41,68 @@
                     <button id="next" stage="0" type="button" class="btn btn-sm btn-primary me-3"><i class="bi bi-chevron-right"></i></button>
                 </div>
                 <div id="user-panel" class="card-body">
-                    <?php $this->view("/pages/files/index") ?>
+                    <?php //$this->view("/pages/files/index") 
+                    ?>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 
-    <div class="row page-wizard d-none" id="writing">
+    <div class="row page-wizard" id="writing">
         <div class="col-12" id="dashboard">
-            <div class="row">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-end">
+                        <button id="next" stage="1" type="button" class="mt-2 btn btn-sm btn-primary"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="table-component" class="table table-hover display">
+                            <thead>
+                                <tr>
+                                    <?php foreach (array_keys($result[0]) as $th) : ?>
+                                        <th><?= $th ?></th>
+                                    <?php endforeach ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($result as $tr) : ?>
+                                    <tr>
+                                        <?php foreach (array_keys($result[0]) as $td) : ?>
+                                            <td><?= $tr[$td] ?></td>
+                                        <?php endforeach ?>
+                                    </tr>
+                                <?php endforeach ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
     <div id="chart-wizard" class="modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title step-description">Modal title</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div>
-                                <div id="wdr-component"></div>
-                            </div>
-
+                    <div class="row" style="height: 100%;">
+                        <div class="col-4 card">
+                            <div class="card-title">Pivotting</div>
+                            <div id="wdr-component"></div>
                         </div>
-                        <div class="col-6">
-                            <ul class="nav nav-tabs" id="myTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="true">PREVIEW</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-tab-pane" type="button" role="tab" aria-controls="json-tab-pane" aria-selected="false">OPTIONS</button>
-                                </li>
-                            </ul>
-
-                            <div class="tab-content">
-                                <div class="tab-pane fade active show" id="data-tab-pane">
-                                    <div class="card p-2">
-                                        <input type="text" class="form-control chart-title" placeholder="Untitled" />
-                                        <hr>
-                                        <div id="chart-component"></div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="json-tab-pane">
-                                    <div class="card p-2">
-                                        <div class="card-title">Chart options</div>
-                                        <div class="card-body">
-                                            <textarea id="chart-options"></textarea>
-                                        </div>
-                                        <div class="card-footer d-grid gap-2">
-                                            <button type="button" id="save-chart-option" class="btn btn-primary">Save changes</button>
-                                        </div>
-                                    </div>
-                                    
-                                </div>
+                        <div class="col-4 card">
+                            <div class="card-title">Chart</div>
+                            <div id="chart-component"></div>
+                        </div>
+                        <div class="col-4 card">
+                            <div class="card-title">Chart options</div>
+                            <div class="card-body">
+                                <div style="max-height: 70vh; overflow-y:auto" id="chart-options-form"></div>
                             </div>
-   
                         </div>
                     </div>
                 </div>
@@ -113,16 +121,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <?php $this->view("/pages/dashboards/templates/index")?>
+                    <?php $this->view("/pages/dashboards/templates/index") ?>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        const folders = <?= json_encode($folders ?? []) ?>;
-    </script>
-    <script src="<?=BASE_PATH?>assets/js/folder-explorer.js">
-        
-    </script>
 </main>
+
+<script>
+    const result = JSON.parse(`<?= json_encode($result ?? []) ?>`)
+</script>

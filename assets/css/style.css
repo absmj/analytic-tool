@@ -1236,7 +1236,11 @@ h6 {
   display: none;
 }
 
-[stage='1'] {
+[stage="1"]:not(.btn-success) {
+  display: block!important;
+}
+
+[stage="3"] {
   display: block!important;
 }
 

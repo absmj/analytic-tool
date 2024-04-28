@@ -8,14 +8,14 @@ const choosingTemplate = new bootstrap.Modal('#choosing-template', {
         keyboard: false
 })
 
-const editor = CodeMirror.fromTextArea(document.getElementById('chart-options'), {
-    mode: 'javascript',
-    indentWithTabs: true,
-    smartIndent: true,
-    lineNumbers: true,
-    matchBrackets: true,
-    autorefresh: true
-});
+// const editor = CodeMirror.fromTextArea(document.getElementById('chart-options'), {
+//     mode: 'javascript',
+//     indentWithTabs: true,
+//     smartIndent: true,
+//     lineNumbers: true,
+//     matchBrackets: true,
+//     autorefresh: true
+// });
 
 
 const pageWizard = {
@@ -42,11 +42,25 @@ const pageWizard = {
         return this.charts[this.charts.length-1]
     },
 
+    get chartOptions() {
+        return this.chart.instance.apex.opts || this.chart.instance.apex.options
+    },
+
+    get chartData() {
+        return JSON.parse(editor.getValue())
+    },
+
+    set chartData(options) {
+        editor.setValue(JSON.stringify(options, null, 2))
+    },
+
     get chartPost() {
+        const {series: _, ...chartOptions} = this.chartOptions
         return (this.charts.map(c => ({
             chart_id: c.id,
             slice: JSON.stringify(c.slice),
             title: c.title,
+            chart_options: chartOptions,
             chart_type: c.type,
             col_class: c.colClass,
             row_index: c.rowIndex,
@@ -180,7 +194,6 @@ $("#writing").on("click", ".chart-type", function() {
         slice: null
     })
 
- 
 
     $("#add-chart").attr({
         'data-affected-element': $(this).parents("[data-action]").attr("data-target-modal"),
@@ -195,33 +208,89 @@ $("#writing").on("click", ".chart-type", function() {
                 data: pageWizard.data
             }
         },
+        dataloaded: function() {
+
+        },
+
+        reportchange: function() {
+            webdatarocks.getData({}, function(e) {
+                if(pageWizard.chart.instance instanceof Apex) {
+                    pageWizard.chart.instance.apex.destroy()
+                    // return;
+                }
+                pageWizard.chart.slice = webdatarocks.getReport().slice
+                pageWizard.chart.instance = new Apex("#chart-component", e, pageWizard.chart.type, $(".chart-title").val() || '')
+                pageWizard.chart.instance.render()
+            })
+        },
         reportcomplete: function() {
             webdatarocks.getData({}, function(e) {
                 if(pageWizard.chart.instance instanceof Apex) {
-                    pageWizard.chart.instance.destroy()
-                    editor.setValue('')
+                    pageWizard.chart.instance.apex.updateOptions(pageWizard.chartOptions)
+                    return;
                 }
                 pageWizard.chart.slice = webdatarocks.getReport().slice
-                pageWizard.chart.instance = new Apex("#chart-component", e, pageWizard.chart.type, $(".chart-title").val() || 'Untitled')
-                
+                pageWizard.chart.instance = new Apex("#chart-component", e, pageWizard.chart.type, $(".chart-title").val() || '')
                 pageWizard.chart.instance.render()
+                generateInputs(pageWizard.chartOptions)
                 
             })
         }
     });
 
 
+
     chartWizard.show()
 
 })
 
+
+function generateInputs(data, parentKey = '') {
+    for (let key in data) {
+        const value = data[key];
+        const inputId = parentKey ? `${parentKey}-${key}` : key;
+        const label = parentKey ? `${parentKey}.${key}` : key;
+        // console.log(data)
+        // if(/^.*?data/gsi.test(inputId)) continue;
+
+        if(!parentKey)
+            document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', `<hr><h4 data-bs-toggle="collapse"  data-bs-target=".${inputId}" class="card-title pt-0 mt-0" role="button" aria-expanded="false" aria-controls="${inputId}">${key}</h4>`);
+
+        if (typeof value === 'object') {
+            // Recursively generate inputs for nested objects
+            generateInputs(value, inputId);
+        } else {
+            // Generate input fields based on the type of value
+            if (typeof value === 'boolean') {
+                // For boolean values, generate a switcher
+                const switcherHTML = `
+                    <div class="collapse form-check form-switch ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
+                        <input onchange="changeState(() => pageWizard.chartOptions${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.checked)" class="form-check-input" type="checkbox" id="${inputId}">
+                        <label class="form-check-label" for="${inputId}">${label}</label>
+                    </div>
+                `;
+                document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', switcherHTML);
+            } else {
+                // For other types, generate a text input
+                const inputHTML = `
+                    <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
+                        <label for="${inputId}" class="form-label">${label}</label>
+                        <input oninput="changeState(() => pageWizard.chartOptions${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
+                    </div>
+                `;
+                document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', inputHTML);
+            }
+        }
+    }
+}
+
 $('#json-tab').on('click', function() {
-    if(!editor.getValue())
-        editor.setValue(JSON.stringify(pageWizard.chart.instance[pageWizard.chart.type], null, 2))
+    // if(!editor.getValue())
+    //     editor.setValue(JSON.stringify(pageWizard.chart.instance[pageWizard.chart.type], null, 2))
 })
 
 $("#save-chart-option").on("click", () => {
-    pageWizard.chart.instance.update(editor.getValue())
+    pageWizard.chart.instance.apex.updateOptions(pageWizard.chartData)
     $("#data-tab").click()
 })
 
@@ -237,14 +306,11 @@ $("#add-chart").on("click", function() {
     $($(this).attr('data-affected-element')).parents("[data-action]").attr({
         "data-action": "added"
     })
-    dashboard.updateInstance($(this).attr('data-affected-element'), pageWizard.chart.instance[pageWizard.chart.type])
+    dashboard.updateInstance($(this).attr('data-affected-element'), pageWizard.chartOptions)
     chartWizard.hide()
 })
 
-$(".chart-title").on("input", function(){
-    pageWizard.chart.instance.title = $(this).val()
-    pageWizard.chart.instance.apex.updateOptions(pageWizard.chart.instance[pageWizard.chart.type])
-})
+
 
 $("#dashboard").on("click", "#save-page", async function() {
     try {
@@ -276,5 +342,14 @@ $("#dashboard").on("click", "#save-page", async function() {
 })
 
 document.addEventListener("DOMContentLoaded", () => {
-    pageWizard.currentStep = 0
+    pageWizard.currentStep = 1
+    pageWizard.data = result
+    $("#table-component").DataTable({
+        responsive: true
+    })
 })
+
+function changeState(callback) {
+    callback()
+    pageWizard.chart.instance.apex.updateOptions(pageWizard.chartOptions)
+}

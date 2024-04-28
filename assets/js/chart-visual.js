@@ -1,26 +1,18 @@
 class ChartVisualisation {
-    pivot;
-
-    constructor(pivot) {
-        this.pivot = pivot;
-    }
-
-
-    get data() {
+    static makeData(pivot) {
         let row = new Set, 
             col = new Set,
             labels = null,
-            values = new Array(this.pivot.meta.vAmount),
+            values = new Array(pivot.meta.vAmount),
             colValues = {},
             totals = {};
 
-        const colExists = this.pivot.meta.cAmount > 0;
-        const rowExists = this.pivot.meta.rAmount > 0;
-        let colIndex = 0, rowIndex = 0;
-        // console.log(this.pivot)
-        totals = Object.values(this.pivot.data[0])
-        for(let di = 0; di < this.pivot.data.length; di++) {
-            const currentObject = this.pivot.data[di]
+        const colExists = pivot.meta.cAmount > 0;
+        const rowExists = pivot.meta.rAmount > 0;
+
+        totals = Object.values(pivot.data[0])
+        for(let di = 0; di < pivot.data.length; di++) {
+            const currentObject = pivot.data[di]
             for(let obj in currentObject) {
                 if(/^r/.test(obj)) row.add(currentObject[obj])
                 if(/^c/.test(obj)) col.add(currentObject[obj])
@@ -28,13 +20,13 @@ class ChartVisualisation {
         }
         
         for (let i = 0; i < values.length; i++) {
-            values[i] = new Array((colExists && rowExists ? col.size + row.size  : this.pivot.data.length) - 1)
-            this.pivot.data.slice(1, colExists && rowExists ? col.size + row.size + 1 : this.pivot.data.length).forEach((l, p) => {
+            values[i] = new Array((colExists && rowExists ? col.size + row.size  : pivot.data.length) - 1)
+            pivot.data.slice(1, colExists && rowExists ? col.size + row.size + 1 : pivot.data.length).forEach((l, p) => {
                 values[i][p] = (l["v" + i])
             })
         }
 
-        for (const item of this.pivot.data) {
+        for (const item of pivot.data) {
             const rKey = Object.keys(item).find(key => key.startsWith('r'));
             const cKey = Object.keys(item).find(key => key.startsWith('c'));
             const vKey = Object.keys(item).find(key => key.startsWith('v'));
@@ -48,29 +40,25 @@ class ChartVisualisation {
             }
         }
 
-        
-
-        // this.pivot.data.slice(1)
-        //                             .forEach((element, index) => {
-        //                                 values[this.pivot.meta['v' + index+'Name']] = [...Object.keys(element).filter(k => /^v/.test(k)).map(f => element[f])]
-        //                             })
-
-
-        labels = Object.keys(this.pivot.meta).filter(f => /^v\d+Name/i.test(f)).map(l => this.pivot.meta[l])
+        labels = Object.keys(pivot.meta).filter(f => /^v\d+Name/i.test(f)).map(l => pivot.meta[l])
 
         return { x: Array.from(row), colValues, labels, values, totals }
     }
-
 }
 
-class Apex extends ChartVisualisation {
+class Apex {
     apex;
     el;
+    type;
+    data;
+    pivot;
     
     constructor(element, data, type, title = "Untitled") {
-        super(data)
+        this.pivot = data;
+        this.data = ChartVisualisation.makeData(data);
         this.el = document.querySelector(element)
         this.title = title
+        this.type = type;
         this.apex = new ApexCharts(this.el, this[type])
 
     }
@@ -85,26 +73,24 @@ class Apex extends ChartVisualisation {
     }
 
     get series() {
-        if(Object.keys(this.data.colValues).length > 0) {
-            console.log(this.data.colValues)
+        const rows = Object.keys(this.data.colValues)
+        if(rows.length > 0) {
             const data = [];
             const dataMap = new Map;
 
             for(let i = 0; i < this.pivot.meta.vAmount; i++) {
-                let rowIndex = 0;
-                for (const rKey of Object.keys(this.data.colValues)) {
+                for (const rKey of rows) {
                     const cObject = this.data.colValues[rKey];
                     let colIndex = 0;
                     for (const cKey of Object.keys(cObject)) {
                         const vValue = cObject[cKey];
-                        data[colIndex] = ({ name: cKey, group: this.pivot.meta['v'+i+'Name'], data: [...Object.keys(this.data.colValues).map(v => Object.keys(this.data.colValues[v]).filter(a => a == cKey).map(b => this.data.colValues[v][b])[0])] });
+                        data[colIndex + (i * rows.length)] = ({ name: this.pivot.meta['v'+i+'Name'] + " " + cKey, group: this.pivot.meta['v'+i+'Name'], data: [...Object.keys(this.data.colValues).map(v => Object.keys(this.data.colValues[v]).filter(a => a == cKey).map(b => this.data.colValues[v][b])[0])] });
                         colIndex++;
                     }
-                    dataMap.set(i, data)
                 }
 
             }
-            return Array.from(dataMap)
+            return data
         } else {
             return this.data.labels.map((d, k) => ({
                 name: d,
@@ -130,7 +116,7 @@ class Apex extends ChartVisualisation {
                 }
             },
             dataLabels: {
-                enabled: false
+                enabled: true
             },
             stroke: {
                 curve: 'straight'
@@ -201,7 +187,7 @@ class Apex extends ChartVisualisation {
                 }
             },
             dataLabels: {
-                enabled: false
+                enabled: true
             },
             title: {
                 text: this.title,
@@ -243,7 +229,7 @@ class Apex extends ChartVisualisation {
                 }
             },
             dataLabels: {
-                enabled: false
+                enabled: true
             },
             title: {
                 text: this.title,
@@ -498,11 +484,14 @@ class Apex extends ChartVisualisation {
         return this.apex.destroy()
     }
 
-    update(data) {
-        this.destroy()
-        this.apex = new ApexCharts((this.el), JSON.parse(data))
-        this.render(data)
+    update(data, options) {
+        this.pivot = data
+        this.data = ChartVisualisation.makeData(data)
+
+        this.apex.updateOptions({...this[this.type]})
     }
+
+
 
     renderOptions(type) {
         return 
