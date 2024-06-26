@@ -1,10 +1,10 @@
+<script src="node_modules/gridstack/dist/gridstack-all.js"></script>
+<link href="node_modules/gridstack/dist/gridstack.min.css" rel="stylesheet"/>
 <style>
     .dashboard-template > .row > :not(.action-panel) {
         position: relative;
         transition: all 0.23s ease-in-out;
     }
-
- 
 
     .chart-wizard-actions {
         width: 100%;
@@ -44,27 +44,26 @@
         opacity: 1;
     } */
 
-
+    .grid-stack { background: #FAFAD2; }
+    .grid-stack-item-content { background-color: #18BC9C; }
 </style>
 
+<?php if(!isset($page)): ?>
 <div class="main dashboard-template">
-    <div class="row sparkboxes mt-4 mb-4 position-releative flex-nowrap chart-row">
-        <!-- <div style="margin-top: -3em; margin-left: -1.8em" class="col-12 position-absolute d-flex justify-content-end action-panel">
-            <button type="button" data-action="duplicate" class="btn btn-sm btn-light"><i class="bi bi-plus"></i></button>
-        </div> -->
-        <div data-action="not-changed" class="col-md-4">
+    <div class="row sparkboxes mt-4 mb-4 position-releative flex-nowrap chart-row" data-row-index="1">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-4" data-col-index="1">
             <div class="box box1">
                 <div id="spark1"></div>
             </div>
             <?php $this->view("pages/dashboards/components/chart-wizard-actions") ?>
         </div>
-        <div data-action="not-changed" class="col-md-4">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-4" data-col-index="2">
             <div class="box box2">
                 <div id="spark2"></div>
             </div>
             <?php $this->view("pages/dashboards/components/chart-wizard-actions") ?>
         </div>
-        <div data-action="not-changed" class="col-md-4">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-4" data-col-index="3">
             <div class="box box3">
                 <div id="spark3"></div>
             </div>
@@ -72,14 +71,14 @@
         </div>
     </div>
 
-    <div class="row mt-5 mb-4 position-releative flex-nowrap chart-row">
-        <div data-action="not-changed" class="col-md-6">
+    <div class="row mt-5 mb-4 position-releative flex-nowrap chart-row" data-row-index="2">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-6" data-col-index="1">
             <div class="box">
                 <div id="bar"></div>
             </div>
             <?php $this->view("pages/dashboards/components/chart-wizard-actions") ?>
         </div>
-        <div data-action="not-changed" class="col-md-6">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-6" data-col-index="2">
             <div class="box">
                 <div id="donut"></div>
             </div>
@@ -87,14 +86,14 @@
         </div>
     </div>
 
-    <div class="row mt-4 mb-4 position-releative flex-nowrap chart-row">
-        <div data-action="not-changed" class="col-md-6">
+    <div class="row mt-4 mb-4 position-releative flex-nowrap chart-row" data-row-index="3">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-6" data-col-index="1">
             <div class="box">
                 <div id="area"></div>
             </div>
             <?php $this->view("pages/dashboards/components/chart-wizard-actions") ?>
         </div>
-        <div data-action="not-changed" class="col-md-6">
+        <div data-action="not-changed" data-id="<?=uniqid()?>" class="col-md-6" data-col-index="2">
             <div class="box">
                 <div id="line"></div>
             </div>
@@ -182,3 +181,58 @@
 
 
 </script>
+
+<?php else: ?>
+    <div id="main" class="main dashboard-template">
+    <?php foreach($rows as $row_index => $row): $rowClass = end($rows[$row_index]); ?>
+        <div class="<?=$rowClass['row_class']?>" data-row-index="<?=$row_index?>">
+            <?php foreach($row as $colIndex => $col): ?>
+
+            <div data-action class="<?=$col['col_class']?>" data-col-index="<?=$col['col_index']?>">
+                <div class="d-none" id="col-pivot-<?=$col['id']?>"></div>
+                <div class="box box1">
+                    <div id="apex-<?=$col['chart_id']?>"></div>
+                </div>
+            </div>
+            <?php endforeach?>
+        </div>
+    <?php endforeach?>
+    </div>
+
+    <script>
+        const charts = <?=json_encode($charts)?>;
+        const report = <?=json_encode($report ?? [])?>;
+        const pivots = [];
+
+        for(chart of charts) {
+            const {id, type, title, slice} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, slice: chart.slice}
+            console.log(slice)
+            pivots.push(
+                new WebDataRocks({
+                    container: `#col-pivot-${chart['id']}`,
+                    toolbar: false,
+                    report: {
+                        dataSource: {
+                            data: report,
+                        },
+                        slice: JSON.parse(slice)
+                    },
+                    dataloaded: function() {
+
+                    },
+                    reportcomplete: function() {
+
+                        webdatarocks.getData({}, function(e) {
+                            console.log(id)
+                            // $(".wdr-ui-element").removeClass("wdr-ui-element");
+                            const a = new Apex("#apex-" + id, e, type, title)
+                            a.render()
+                        })
+                    }
+                })
+            )
+        }
+        console.log(charts);
+
+    </script>
+<?php endif?>

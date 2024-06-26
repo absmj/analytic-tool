@@ -34,7 +34,7 @@ class Dashboard extends BaseController
 			foreach($post as &$value) {
 				$value['page_id'] = $page_id;
 			}
-
+			// dd($value);
 			$data = $this->chart->insertBatch($post);
 			echo BaseResponse::ok("success", $data);
 			exit;
@@ -45,11 +45,13 @@ class Dashboard extends BaseController
 			])
 			->set("vendorStyles", [
 				"vendor/pivottable/pivot.css",
-				"vendor/datatables/datatables.css"
+				"vendor/datatables/datatables.css",
+				"vendor/gridstack/gridstack.css",
 				])			
 			->set("vendorScripts", [
 				"vendor/datatables/datatables.js",
-				"vendor/pivottable/pivottable.js"
+				"vendor/pivottable/pivottable.js",
+				"vendor/gridstack/gridstack.js"
 			])
 			->set("vendorScripts", [
 				"js/functions.js",

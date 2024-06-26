@@ -120,7 +120,7 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
-	private function saveReport($data, $base = null, $isCron = false, $toFile = false)
+	private function saveReport($data, $base = null, $isCron = false, $toFile = true)
 	{
 		try {
 			if(!empty($data)) {
@@ -186,7 +186,6 @@ class Reports extends BaseController
 							"type" => "csv"
 						]);
 						$job['file_id'] = $file;
-
 					} else {
 						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 					}
@@ -215,4 +214,13 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Success", $report);
 	}
 
+	public function getData($job) {
+		$job = $this->job->getById($job);
+		if($job["file_id"]) {
+			$file = $this->file->getById($job['file_id']);
+			$data = csv2json(file_get_contents($file['location']));
+		}
+		header("Content-Type: application/json");
+		echo BaseResponse::ok("Successfull", $data, 200, false);
+	}
 }

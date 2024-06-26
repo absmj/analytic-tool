@@ -1,6 +1,6 @@
 <?php
 if (!function_exists("dd")) {
-    function dd(...$argv)
+    function dd($argv)
     {
         echo "<pre>";
         print_r($argv);

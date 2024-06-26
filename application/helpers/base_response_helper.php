@@ -2,14 +2,14 @@
 
 class BaseResponse
 {
-    public static function ok($message = "Successfull", $data = [], $status = StatusCodes::HTTP_OK) {
+    public static function ok($message = "Successfull", $data = [], $status = StatusCodes::HTTP_OK, $br = true) {
         header("Content-Type: application/json", true, $status);
-        return json_encode([
+        return json_encode($br ? [
             "status" => $status,
             "type" => "Success",
             "message" =>$message,
             "data" => $data
-        ]);
+        ]: $data);
     }
 
     public static function error($message = "Error", $status = StatusCodes::HTTP_INTERNAL_SERVER_ERROR) {

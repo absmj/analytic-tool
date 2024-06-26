@@ -36,14 +36,14 @@ const pageWizard = {
     pivot: null,
     data: null,
     table: null,
-    charts: [],
+    charts: new Map,
     // last chart
     get chart() {
         return this.charts[this.charts.length-1]
     },
 
-    get chartOptions() {
-        return this.chart.instance.apex.opts || this.chart.instance.apex.options
+    chartOptions(index) {
+        return this.charts.get(index).instance.apex.opts || this.charts.get(index).instance.apex.options
     },
 
     get chartData() {
@@ -55,17 +55,22 @@ const pageWizard = {
     },
 
     get chartPost() {
-        const {series: _, ...chartOptions} = this.chartOptions
-        return (this.charts.map(c => ({
-            chart_id: c.id,
-            slice: JSON.stringify(c.slice),
-            title: c.title,
-            chart_options: chartOptions,
-            chart_type: c.type,
-            col_class: c.colClass,
-            row_index: c.rowIndex,
-            row_class: c.rowClass
-        })))
+
+        return ([...this.charts.values()].map(c => {
+            
+            const {series: _, ...chartOptions} = this.chartOptions(c.id)
+            return {
+                chart_id: c.id,
+                slice: JSON.stringify(c.slice),
+                title: c.title,
+                chart_options: JSON.stringify(chartOptions),
+                chart_type: c.type,
+                col_class: c.colClass,
+                row_index: c.rowIndex,
+                col_index: c.colIndex,
+                row_class: c.rowClass
+            }
+        }))
     },
 
     // set last chart
@@ -181,58 +186,69 @@ $("[data-template]").on("click", async function() {
 })
 
 $("#writing").on("click", ".chart-type", function() {
-    pageWizard.charts.push({
-        id: `apex-chart-${uuid()}`,
+    const uuid = $(this).parents("[data-action]").attr("data-id")
+
+    pageWizard.charts.set(uuid, {
+        id: uuid,
         file: pageWizard.selected.file,
         folder: pageWizard.selected.folder,
         title: null,
         type: $(this).attr("data-type"),
         colClass: $(this).parents("[data-action]").attr("class"),
         rowClass: $(this).parents(".chart-row").attr("class"),
-        rowIndex:  ($(this).parents(".chart-row").index() + 1) - $(".chart-row").length,
+        rowIndex:  $(this).parents(".chart-row").attr("data-row-index"),
+        colIndex: $(this).parents("[class^='col']").attr("data-col-index"),
         instance: null,
-        slice: null
+        slice: $(this).parent().attr("data-report-slice") || null
     })
-
 
     $("#add-chart").attr({
         'data-affected-element': $(this).parents("[data-action]").attr("data-target-modal"),
-        'data-saving-chart-type': $(this).attr("data-type")
+        'data-saving-chart-type': $(this).attr("data-type"),
+        'data-uuid': uuid,
     })
 
-    pageWizard.pivot = new WebDataRocks({
+    const chart = pageWizard.charts.get(uuid)
+    
+    chart.slice = JSON.parse(chart.slice)
+
+    new WebDataRocks({
         container: "#wdr-component",
         toolbar: false,
         report: {
             dataSource: {
                 data: pageWizard.data
-            }
-        },
-        dataloaded: function() {
-
+            },
+            slice: chart.slice
         },
 
         reportchange: function() {
             webdatarocks.getData({}, function(e) {
-                if(pageWizard.chart.instance instanceof Apex) {
-                    pageWizard.chart.instance.apex.destroy()
+                if(chart.instance instanceof Apex) {
+                    chart.instance.apex.destroy()
                     // return;
                 }
-                pageWizard.chart.slice = webdatarocks.getReport().slice
-                pageWizard.chart.instance = new Apex("#chart-component", e, pageWizard.chart.type, $(".chart-title").val() || '')
-                pageWizard.chart.instance.render()
+                chart.slice = webdatarocks.getReport().slice
+                $("#add-chart").attr({
+                    'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+                })
+                chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                chart.instance.render()
             })
         },
         reportcomplete: function() {
             webdatarocks.getData({}, function(e) {
-                if(pageWizard.chart.instance instanceof Apex) {
-                    pageWizard.chart.instance.apex.updateOptions(pageWizard.chartOptions)
+                if(chart.instance instanceof Apex) {
+                    chart.instance.apex.updateOptions(pageWizard.chartOptions(uuid))
                     return;
                 }
-                pageWizard.chart.slice = webdatarocks.getReport().slice
-                pageWizard.chart.instance = new Apex("#chart-component", e, pageWizard.chart.type, $(".chart-title").val() || '')
-                pageWizard.chart.instance.render()
-                generateInputs(pageWizard.chartOptions)
+                // chart.slice = webdatarocks.getReport().slice
+                chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                chart.instance.render()
+                generateInputs(pageWizard.chartOptions(uuid), uuid)
+                $("#add-chart").attr({
+                    'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+                })
                 
             })
         }
@@ -245,7 +261,7 @@ $("#writing").on("click", ".chart-type", function() {
 })
 
 
-function generateInputs(data, parentKey = '') {
+function generateInputs(data, index, parentKey = '') {
     for (let key in data) {
         const value = data[key];
         const inputId = parentKey ? `${parentKey}-${key}` : key;
@@ -258,14 +274,14 @@ function generateInputs(data, parentKey = '') {
 
         if (typeof value === 'object') {
             // Recursively generate inputs for nested objects
-            generateInputs(value, inputId);
+            generateInputs(value, index, inputId);
         } else {
             // Generate input fields based on the type of value
             if (typeof value === 'boolean') {
                 // For boolean values, generate a switcher
                 const switcherHTML = `
                     <div class="collapse form-check form-switch ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
-                        <input onchange="changeState(() => pageWizard.chartOptions${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.checked)" class="form-check-input" type="checkbox" id="${inputId}">
+                        <input onchange="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.checked)" class="form-check-input" type="checkbox" id="${inputId}">
                         <label class="form-check-label" for="${inputId}">${label}</label>
                     </div>
                 `;
@@ -275,7 +291,7 @@ function generateInputs(data, parentKey = '') {
                 const inputHTML = `
                     <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
                         <label for="${inputId}" class="form-label">${label}</label>
-                        <input oninput="changeState(() => pageWizard.chartOptions${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
+                        <input oninput="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', inputHTML);
@@ -286,7 +302,7 @@ function generateInputs(data, parentKey = '') {
 
 $('#json-tab').on('click', function() {
     // if(!editor.getValue())
-    //     editor.setValue(JSON.stringify(pageWizard.chart.instance[pageWizard.chart.type], null, 2))
+    //     editor.setValue(JSON.stringify(chart.instance[pageWizard.chart.type], null, 2))
 })
 
 $("#save-chart-option").on("click", () => {
@@ -294,25 +310,29 @@ $("#save-chart-option").on("click", () => {
     $("#data-tab").click()
 })
 
-$("#chart-wizard").on('hide.bs.modal', () => {
-    pageWizard.chart.instance.destroy()
+$("#chart-wizard").on('hide.bs.modal', function() {
+    const uuid = $(this).find("#add-chart").attr("data-uuid")
+    pageWizard.charts.get(uuid).instance.destroy()
 })
 
 $("#add-chart").on("click", function() {
-    $($(this).attr('data-affected-element')).parents("[data-action]").find(".chart-type").addClass("btn-light")
-    $($(this).attr('data-affected-element')).parents("[data-action]").find(`.chart-type[data-type="${pageWizard.chart.type}"]`).
+    const uuidBtn = $(this).attr("data-uuid")
+    const el = $($(this).attr('data-affected-element')).parents("[data-action]").find(".chart-type")
+    el.addClass("btn-light")
+    $($(this).attr('data-affected-element')).parents("[data-action]").find(`.chart-type[data-type="${pageWizard.charts.get(uuidBtn).type}"]`).
         removeClass("btn-light").
         addClass("btn-primary");
     $($(this).attr('data-affected-element')).parents("[data-action]").attr({
         "data-action": "added"
     })
-    dashboard.updateInstance($(this).attr('data-affected-element'), pageWizard.chartOptions)
+    el.parent().attr("data-report-slice", $(this).attr("data-report-slice"))
+    dashboard.updateInstance($(this).attr('data-affected-element'), pageWizard.chartOptions(uuidBtn))
     chartWizard.hide()
 })
 
 
 
-$("#dashboard").on("click", "#save-page", async function() {
+$("#main").on("click", "#save-page", async function() {
     try {
         uiInterface.loading = true
 
@@ -349,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 })
 
-function changeState(callback) {
+function changeState(index, callback) {
     callback()
-    pageWizard.chart.instance.apex.updateOptions(pageWizard.chartOptions)
+    pageWizard.charts.get(index).instance.apex.updateOptions(pageWizard.chartOptions(index))
 }
