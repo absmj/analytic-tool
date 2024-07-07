@@ -78,4 +78,98 @@ class Report_model extends CRUD {
                     ->get()
                     ->result_array();
     }
+
+    public function generateCrosstabQuery($slice, $tableName) {
+        // Extract the necessary parts from the slice
+        $rows = $slice['rows'];
+        $columns = $slice['columns'];
+        $measures = $slice['measures'];
+        $filters = $slice['filters'] ?? [];
+    
+        // Create the select part of the query
+        $selectParts = [];
+        foreach ($rows as $row) {
+            $selectParts[] = '"' . $row['uniqueName'] . '"';
+        }
+        $selectPartsString = implode(", ", $selectParts);
+    
+        // Create the measures part of the query
+        $measureParts = [];
+        foreach ($measures as $measure) {
+            $measureParts[] = strtoupper($measure['aggregation']) . '("' . $measure['uniqueName'] . '") AS "' . $measure['uniqueName'] . '"';
+        }
+        $measurePartsString = implode(", ", $measureParts);
+    
+        // Create the where clause based on filters
+        $whereParts = [];
+        foreach ($filters as $filter) {
+            $members = implode("', '", $filter['filter']['members']);
+            $whereParts[] = '"' . $filter['uniqueName'] . '" IN (\'' . $members . '\')';
+        }
+        $whereClause = !empty($whereParts) ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+    
+        // Create the index columns part of the query
+        $indexColumns = [];
+        foreach ($columns as $column) {
+            $indexColumns[] = '"' . $column['uniqueName'] . '"';
+        }
+        $indexColumnsString = implode(", ", $indexColumns);
+    
+        // Create the data selection query
+        $dataSelectQuery = "
+            SELECT
+                $selectPartsString,
+                $indexColumnsString,
+                $measurePartsString
+            FROM
+                $tableName
+            $whereClause
+            GROUP BY
+                $selectPartsString, $indexColumnsString
+            ORDER BY
+                $selectPartsString, $indexColumnsString
+        ";
+    
+        // Create the distinct column values query
+        $distinctColumnsQuery = "
+            SELECT DISTINCT $indexColumnsString
+            FROM $tableName 
+            ORDER BY $indexColumnsString
+        ";
+    
+        // Fetch distinct column values dynamically from the database
+        $distinctColumnValues = $this->getDistinctColumnValues($distinctColumnsQuery);
+    
+        // Create the crosstab query
+        $crosstabQuery = "
+            CREATE EXTENSION IF NOT EXISTS tablefunc;
+    
+            SELECT *
+            FROM crosstab(
+                $$ $dataSelectQuery $$,
+                $$ $distinctColumnsQuery $$
+            ) AS ct (
+                $selectPartsString,
+        ";
+    
+        foreach ($distinctColumnValues as $columnValues) {
+            $combinedValues = implode(" - ", $columnValues);
+            $crosstabQuery .= '"' . $combinedValues . '" numeric, ';
+        }
+    
+        // Remove the trailing comma and space
+        $crosstabQuery = rtrim($crosstabQuery, ', ') . "\n);";
+    
+        return $crosstabQuery;
+    }
+    
+    private function getDistinctColumnValues($query) {
+        return [];
+        $stmt = $this->db->query($query)->row_array();
+        $distinctColumnValues = [];
+        foreach($stmt as $row) {
+            $distinctColumnValues[] = $row;
+        }
+        return $distinctColumnValues;
+    }
 }

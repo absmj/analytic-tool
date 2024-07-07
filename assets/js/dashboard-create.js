@@ -185,79 +185,86 @@ $("[data-template]").on("click", async function() {
     }
 })
 
-$("#writing").on("click", ".chart-type", function() {
-    const uuid = $(this).parents("[data-action]").attr("data-id")
-
-    pageWizard.charts.set(uuid, {
-        id: uuid,
-        file: pageWizard.selected.file,
-        folder: pageWizard.selected.folder,
-        title: null,
-        type: $(this).attr("data-type"),
-        colClass: $(this).parents("[data-action]").attr("class"),
-        rowClass: $(this).parents(".chart-row").attr("class"),
-        rowIndex:  $(this).parents(".chart-row").attr("data-row-index"),
-        colIndex: $(this).parents("[class^='col']").attr("data-col-index"),
-        instance: null,
-        slice: $(this).parent().attr("data-report-slice") || null
-    })
-
-    $("#add-chart").attr({
-        'data-affected-element': $(this).parents("[data-action]").attr("data-target-modal"),
-        'data-saving-chart-type': $(this).attr("data-type"),
-        'data-uuid': uuid,
-    })
-
-    const chart = pageWizard.charts.get(uuid)
+$("#writing").on("click", ".chart-type", async function() {
+    try {
+        // const req = await $.get(BASE_URL +  "chart/" + $(this).attr("data-type"))
+        // $("#chart-type-versions").html(req.data.view)
+        const uuid = $(this).parents("[data-action]").attr("data-id")
+        pageWizard.charts.set(uuid, {
+            id: uuid,
+            file: pageWizard.selected.file,
+            folder: pageWizard.selected.folder,
+            title: null,
+            type: $(this).attr("data-type"),
+            colClass: $(this).parents("[data-action]").attr("class"),
+            rowClass: $(this).parents(".chart-row").attr("class"),
+            rowIndex:  $(this).parents(".chart-row").attr("data-row-index"),
+            colIndex: $(this).parents("[class^='col']").attr("data-col-index"),
+            instance: null,
+            slice: $(this).parent().attr("data-report-slice") || null
+        })
     
-    chart.slice = JSON.parse(chart.slice)
-
-    new WebDataRocks({
-        container: "#wdr-component",
-        toolbar: false,
-        report: {
-            dataSource: {
-                data: pageWizard.data
+        $("#add-chart").attr({
+            'data-affected-element': $(this).parents("[data-action]").attr("data-target-modal"),
+            'data-saving-chart-type': $(this).attr("data-type"),
+            'data-uuid': uuid,
+        })
+    
+        const chart = pageWizard.charts.get(uuid)
+        
+        chart.slice = JSON.parse(chart.slice)
+    
+        new WebDataRocks({
+            container: "#wdr-component",
+            toolbar: false,
+            report: {
+                dataSource: {
+                    data: pageWizard.data
+                },
+                slice: chart.slice
             },
-            slice: chart.slice
-        },
-
-        reportchange: function() {
-            webdatarocks.getData({}, function(e) {
-                if(chart.instance instanceof Apex) {
-                    chart.instance.apex.destroy()
-                    // return;
-                }
-                chart.slice = webdatarocks.getReport().slice
-                $("#add-chart").attr({
-                    'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+    
+            reportchange: function() {
+                webdatarocks.getData({}, function(e) {
+                    if(chart.instance instanceof Apex) {
+                        chart.instance.apex.destroy()
+                        // return;
+                    }
+                    chart.slice = webdatarocks.getReport().slice;
+                    $("#add-chart").attr({
+                        'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+                    })
+                    chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                    console.log(chart.instance[chart.type])
+                    chart.instance.render()
+                    $("#chart-options-form").html('');
+                    generateInputs(pageWizard.chartOptions(uuid), uuid)
                 })
-                chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
-                chart.instance.render()
-            })
-        },
-        reportcomplete: function() {
-            webdatarocks.getData({}, function(e) {
-                if(chart.instance instanceof Apex) {
-                    chart.instance.apex.updateOptions(pageWizard.chartOptions(uuid))
-                    return;
-                }
-                // chart.slice = webdatarocks.getReport().slice
-                chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
-                chart.instance.render()
-                generateInputs(pageWizard.chartOptions(uuid), uuid)
-                $("#add-chart").attr({
-                    'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+            },
+            reportcomplete: function() {
+                webdatarocks.getData({}, function(e) {
+                    if(chart.instance instanceof Apex) {
+                        chart.instance.apex.updateOptions(pageWizard.chartOptions(uuid))
+                        return;
+                    }
+                    chart.slice = webdatarocks.getReport().slice
+                    chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                    chart.instance.render()
+                    console.log(chart.instance[chart.type])
+                    $("#chart-options-form").html('');
+                    generateInputs(pageWizard.chartOptions(uuid), uuid)
+                    $("#add-chart").attr({
+                        'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
+                    })
+                    
                 })
-                
-            })
-        }
-    });
-
-
-
-    chartWizard.show()
-
+            }
+        });
+    
+        chartWizard.show()
+    } catch(e) {
+        uiInterface.error = e?.responseJSON?.message ?? e.message
+    }
 })
 
 
@@ -267,8 +274,7 @@ function generateInputs(data, index, parentKey = '') {
         const inputId = parentKey ? `${parentKey}-${key}` : key;
         const label = parentKey ? `${parentKey}.${key}` : key;
         // console.log(data)
-        // if(/^.*?data/gsi.test(inputId)) continue;
-
+        if(/^.*?data$/gsi.test(inputId)) continue;
         if(!parentKey)
             document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', `<hr><h4 data-bs-toggle="collapse"  data-bs-target=".${inputId}" class="card-title pt-0 mt-0" role="button" aria-expanded="false" aria-controls="${inputId}">${key}</h4>`);
 
@@ -286,6 +292,22 @@ function generateInputs(data, index, parentKey = '') {
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', switcherHTML);
+            } else if(/#([a-zA-Z0-9])/.test(value)) {
+                const colorinput = `
+                    <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
+                        <label for="${inputId}" class="form-label">${label}</label>
+                        <input onchange="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="color" class="form-control" id="${inputId}" value="${value}">
+                    </div>
+                `;
+                document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', colorinput);
+            } else if(/\d+(px)/.test(value)) {
+                const rangeinput = `
+                    <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
+                        <label for="${inputId}" class="form-label">${label}</label>
+                        <input oninput="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="range" class="form-range" id="${inputId}" value="${value}">
+                    </div>
+                `;
+                document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', rangeinput);
             } else {
                 // For other types, generate a text input
                 const inputHTML = `

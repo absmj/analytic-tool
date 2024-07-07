@@ -59,6 +59,7 @@ class Dashboard extends BaseController
 			])
 			->set("scripts", [
 				"js/chart-visual.js",
+				"js/template.js",
 				"js/dashboard-create.js",
 			]);
 

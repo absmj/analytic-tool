@@ -1,5 +1,4 @@
-<script src="node_modules/gridstack/dist/gridstack-all.js"></script>
-<link href="node_modules/gridstack/dist/gridstack.min.css" rel="stylesheet"/>
+
 <style>
     .dashboard-template > .row > :not(.action-panel) {
         position: relative;
@@ -102,86 +101,6 @@
     </div>
 </div>
 
-<script>
-    Apex.grid = {
-        padding: {
-            right: 0,
-            left: 0
-        }
-    }
-
-    Apex.dataLabels = {
-        enabled: false
-    }
-
-
-    const apexInsancesData = [{
-            el: "#spark1",
-            type: 'area',
-            op: spark1
-        },
-        {
-            el: "#spark2",
-            type: 'area',
-            op: spark2
-        },
-        {
-            el: "#spark3",
-            type: 'area',
-            op: spark3
-        },
-        {
-            el: "#area",
-            type: 'area',
-            op: optionsArea
-        },
-        {
-            el: "#bar",
-            type: 'bar',
-            op: optionsBar
-        },
-        {
-            el: "#donut",
-            type: 'donut',
-            op: optionDonut
-        },
-        {
-            el: "#line",
-            type: 'line',
-            op: optionsLine
-        }
-    ]
-
-    const dashboard = {
-        instances: [],
-        async init() {
-            this.instances = renderMockData(apexInsancesData)
-            let k = 0;
-            for(let i in this.instances) {
-                $(i).parents("[data-action]").attr({
-                    "data-target-modal": i
-                })
-                await this.instances[i].render();
-                const el = document.
-                    querySelector(i).
-                    parentNode.
-                    nextElementSibling.querySelector(`.chart-list > button[data-type=${apexInsancesData[k].type}]`)
-                el.classList.remove("btn-light")
-                el.classList.add("btn-primary")
-                k++;
-            }
-        },
-        updateInstance(id, data) {
-            this.instances[id].destroy()
-            this.instances[id] = new ApexCharts(document.querySelector(id), data)
-            this.instances[id].render()
-        }
-    }
-    
-
-
-</script>
-
 <?php else: ?>
     <div id="main" class="main dashboard-template">
     <?php foreach($rows as $row_index => $row): $rowClass = end($rows[$row_index]); ?>
@@ -189,7 +108,7 @@
             <?php foreach($row as $colIndex => $col): ?>
 
             <div data-action class="<?=$col['col_class']?>" data-col-index="<?=$col['col_index']?>">
-                <div class="d-none" id="col-pivot-<?=$col['id']?>"></div>
+                <div class="d-none" id="col-pivot-<?=$col['chart_id']?>"></div>
                 <div class="box box1">
                     <div id="apex-<?=$col['chart_id']?>"></div>
                 </div>
@@ -198,41 +117,9 @@
         </div>
     <?php endforeach?>
     </div>
-
     <script>
         const charts = <?=json_encode($charts)?>;
         const report = <?=json_encode($report ?? [])?>;
-        const pivots = [];
-
-        for(chart of charts) {
-            const {id, type, title, slice} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, slice: chart.slice}
-            console.log(slice)
-            pivots.push(
-                new WebDataRocks({
-                    container: `#col-pivot-${chart['id']}`,
-                    toolbar: false,
-                    report: {
-                        dataSource: {
-                            data: report,
-                        },
-                        slice: JSON.parse(slice)
-                    },
-                    dataloaded: function() {
-
-                    },
-                    reportcomplete: function() {
-
-                        webdatarocks.getData({}, function(e) {
-                            console.log(id)
-                            // $(".wdr-ui-element").removeClass("wdr-ui-element");
-                            const a = new Apex("#apex-" + id, e, type, title)
-                            a.render()
-                        })
-                    }
-                })
-            )
-        }
-        console.log(charts);
-
+        dashboard.template(charts, report)
     </script>
 <?php endif?>

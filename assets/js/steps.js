@@ -43,7 +43,7 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //           queryForm.append(`
 //             <div class="mb-3">
 //               <label for="${p}" class="col-form-label">${p}:</label>
-//               <input type="text" class="form-control" required name="params[]">
+//               <pe="text" class="form-control" required name="params[]">
 //             </div>
 //           `)
 //         })

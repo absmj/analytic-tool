@@ -1,3 +1,4 @@
+
 <main id="main" class="main">
     <div class="d-flex justify-content-between align-items-center">
         <div class="pagetitle">
@@ -89,7 +90,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row" style="height: 100%;">
+                    <div id="chart-type-versions"></div>
+                    <div id="chart-wizard-by-user" class="row" style="height: 100%;">
                         <div class="col-4 card">
                             <div class="card-title">Pivotting</div>
                             <div id="wdr-component"></div>

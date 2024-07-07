@@ -14,6 +14,7 @@ class Reports extends BaseController
 		$this->load->model("File_model", "file");
 		$this->load->model("Cron_model", "cron");
 		$this->load->model("Job_model", "job");
+		$this->load->helper(["pivot_helper", "apex"]);
 	}
 
 	public function index()
@@ -216,11 +217,43 @@ class Reports extends BaseController
 
 	public function getData($job) {
 		$job = $this->job->getById($job);
-		if($job["file_id"]) {
-			$file = $this->file->getById($job['file_id']);
-			$data = csv2json(file_get_contents($file['location']));
+		// dd($job);
+		$query = $this->query->getById($job['query_id']);
+		$slice = json_decode('{"rows":[{"uniqueName":"job"}],"columns":[{"uniqueName":"contact"},{"uniqueName":"Measures"}],"measures":[{"uniqueName":"age","aggregation":"sum"}]}', 1);
+		
+		if($query["sql"]) {
+			$data = $this->report->run($query['db'], "select * from train", []);
+
+			$pivot = PHPivot::create($data);
+
+			foreach($slice['rows'] as $r) {
+				$pivot->setPivotRowFields($r['uniqueName']);
+			}
+			foreach($slice['columns'] ?? [] as $r) {
+				if($r['uniqueName'] == 'Measures') continue;
+
+				$pivot->setPivotColumnFields($r['uniqueName']);
+			}
+			foreach($slice['measures'] ?? [] as $r) {
+				$pivot->setPivotValueFields($r['uniqueName']);
+			}
+
+			foreach($slice['filters'] ?? [] as $r) {
+				$pivot->addFilter($r['uniqueName'], $r['filter']['members']);
+			}
+			
+			$pivotData = $pivot->generate()->toArray();
+			$apex = new Apex($pivotData);
+			dd($apex->datasets);
 		}
+
+
 		header("Content-Type: application/json");
 		echo BaseResponse::ok("Successfull", $data, 200, false);
+	}
+
+	public function test() {
+		$slice = json_decode('{"rows":[{"uniqueName":"job"}],"columns":[{"uniqueName":"Measures"}],"measures":[{"uniqueName":"age","aggregation":"sum"}]}', 1);
+		dd($this->report->generateCrosstabQuery($slice, 'train'));
 	}
 }

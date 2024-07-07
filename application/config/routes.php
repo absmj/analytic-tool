@@ -55,6 +55,7 @@ $route['folder/(:num)/files'] = "files/index/$1";
 $route['report/(:num)'] = "reports/get/$1";
 $route['report/(:num)/delete'] = "reports/delete/$1";
 $route['report/(:num)/edit'] = "reports/edit/$1";
+$route['chart/(:any)'] = "chart/index/$1";
 
 $route['page/(:num)'] = "pages/get/$1";
 $route['page/(:num)/delete'] = "pages/delete/$1";
