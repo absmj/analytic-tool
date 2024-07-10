@@ -8,12 +8,12 @@ class Apex {
     public $xAxis;
     public $yAxis;
 
-    public function __construct($data, $type, $sorting = null, $slice = null)
+    public function __construct($data, $type, $sorting = null, $slice = null, $labels = null)
     {
         $this->data = $data;
         // dd($data);
-        $this->labels = array_values(array_filter(array_keys($data), function($k) { return $k != '_type'; }));
-        // dd($this->labels);
+        if($labels == null || empty($labels)) $this->labels = array_values(array_filter(array_keys($data), function($k) { return $k != '_type'; }));
+        else $this->labels = $labels;
         $labels = [];
         if(is_array($slice)) {
             // dd(array_merge($slice['rows'], $slice['columns']));

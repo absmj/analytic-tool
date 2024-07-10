@@ -40,6 +40,7 @@ class Pages extends BaseController
 		$rows = [];
 		$charts_ = [];
 		foreach ($charts as $chart) {
+			$day = null; $month = null; $year = null;
 			$chart['row_index'] = (int)$chart['row_index'];
 			// var_dump($chart['row_index']);
 			if (is_int((int)$chart['row_index'])) {
@@ -98,13 +99,22 @@ class Pages extends BaseController
 				}
 				
 				$pivotData = $pivot->generate()->toArray();
+
 				// dd($pivotData);
-				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice);
 				$chart['options'] = json_decode($chart['chart_options'], 1);
+				// dd($chart['options']['labels']);
+				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null);
 				$chart['options']['series'] = $apex->datasets;
-				// dd($chart);
-				$chart['options']['xaxis']['categories'] = $apex->labels;
-				$chart['options']['labels'] = $apex->labels;
+				if($month){
+					$mounth = array_map("mounthConverter", $apex->labels);
+					$chart['options']['xaxis'] = [];
+					$chart['options']['xaxis']['categories'] = $mounth;
+					$chart['options']['labels'] = $mounth;	
+				} else {
+					$chart['options']['xaxis']['categories'] = $apex->labels;
+					$chart['options']['labels'] = $apex->labels;
+				}
+
 				$rows[$chart['row_index']][] = $chart;
 				$charts_[] = $chart;
 			}

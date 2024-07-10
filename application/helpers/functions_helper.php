@@ -128,7 +128,23 @@ function csv2json($csv)
     return $array;
 }
 
-
+function mounthConverter($mounth) {
+    switch($mounth) {
+        case 1:
+            return "Yanvar";    case 2:
+                return "Fevral";        case 3:
+                    return "Mart";        case 4:
+                        return "Aprel";        case 5:
+                            return "May";        case 6:
+                                return "İyun";        case 7:
+                                    return "İyul";        case 8:
+                                        return "Avqust";        case 9:
+                                            return "Sentyabr";        case 10:
+                                                return "Oktyabr";        case 11:
+                                                    return "Noyabr";        case 12:
+                                                        return "Dekabr";
+    }
+}
 
 ?>
 

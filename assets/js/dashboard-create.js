@@ -58,7 +58,9 @@ const pageWizard = {
 
         return ([...this.charts.values()].map(c => {
             
-            const {series: _, ...chartOptions} = this.chartOptions(c.id)
+            const {series, ...chartOptions} = this.chartOptions(c.id)
+            seriesLabels = series.map(s => s.name || s.group)
+            chartOptions.series = seriesLabels;
             return {
                 chart_id: c.id,
                 slice: JSON.stringify(c.slice),
@@ -228,8 +230,8 @@ $("#writing").on("click", ".chart-type", async function() {
                 webdatarocks.getData({}, function(e) {
                     if(chart.instance instanceof Apex) {
                         chart.instance.apex.destroy()
-                        // return;
                     }
+
                     chart.slice = webdatarocks.getReport().slice;
                     $("#add-chart").attr({
                         'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
@@ -248,7 +250,8 @@ $("#writing").on("click", ".chart-type", async function() {
                         return;
                     }
                     chart.slice = webdatarocks.getReport().slice
-                    chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                    if(!(chart.instance instanceof Apex))
+                        chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
                     chart.instance.render()
                     console.log(chart.instance[chart.type])
                     $("#chart-options-form").html('');
