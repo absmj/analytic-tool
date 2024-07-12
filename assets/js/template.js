@@ -77,8 +77,9 @@ const dashboard = {
 
         for(let chart of charts) {
             const {id, type, title, options} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, options: chart.options}
-            console.log(options)
+
             chartInstances[id] = new ApexCharts(document.querySelector(`#apex-${id}`), options)
+            console.log(chartInstances[id])
             chartInstances[id].render()
         }
         return chartInstances

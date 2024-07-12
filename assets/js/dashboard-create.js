@@ -316,7 +316,7 @@ function generateInputs(data, index, parentKey = '') {
                 const inputHTML = `
                     <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
                         <label for="${inputId}" class="form-label">${label}</label>
-                        <input oninput="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
+                        <input onfocusout="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', inputHTML);

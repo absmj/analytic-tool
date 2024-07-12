@@ -103,7 +103,7 @@ class Pages extends BaseController
 				// dd($pivotData);
 				$chart['options'] = json_decode($chart['chart_options'], 1);
 				// dd($chart['options']['labels']);
-				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null);
+				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
 				$chart['options']['series'] = $apex->datasets;
 				if($month){
 					$mounth = array_map("mounthConverter", $apex->labels);
@@ -113,6 +113,14 @@ class Pages extends BaseController
 				} else {
 					$chart['options']['xaxis']['categories'] = $apex->labels;
 					$chart['options']['labels'] = $apex->labels;
+				}
+
+				preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'], $matches);
+
+				foreach($matches[1] as $match) {
+					if(!is_null($apex->{$match})) {
+						$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
+					}
 				}
 
 				$rows[$chart['row_index']][] = $chart;

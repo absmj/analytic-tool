@@ -7,8 +7,10 @@ class Apex {
     public $labels;
     public $xAxis;
     public $yAxis;
+    public $total = 0;
+    public $avarage;
 
-    public function __construct($data, $type, $sorting = null, $slice = null, $labels = null)
+    public function __construct($data, $type, $sorting = null, $slice = null, $labels = null, $names = [])
     {
         $this->data = $data;
         // dd($data);
@@ -21,11 +23,11 @@ class Apex {
         }
 
 
-        $this->datasets = $this->generateSeries(array_slice($this->data, 1), $type, $sorting);
+        $this->datasets = $this->generateSeries(array_slice($this->data, 1), $type, $sorting, $names);
     }
 
 
-    public function generateSeries($data, $type, $sorting) {
+    public function generateSeries($data, $type, $sorting, $names) {
         $series = [];
         $cols = [];
         $vals = [];
@@ -53,7 +55,8 @@ class Apex {
                                     $means[$ck] = $k;
                                 }
                                 if($v == "TYPE_VAL") continue;
-                                $vals[$ck][] = (int)$v['_val']; 
+                                $vals[$ck][] = (int)$v['_val'];
+                                $this->total += (int)($v['_val']);
                             }
                         }
 
@@ -61,8 +64,9 @@ class Apex {
                         if($c == "TYPE_VAL") continue;
                         if(!in_array($ck, $cols)) $cols[] = $ck;
                         $vals[$ck][] = (int)($c['_val']);
+                        $this->total += (int)($c['_val']);
                     }
-
+ 
                         // $cols = array_keys($c);
 
 
@@ -80,6 +84,7 @@ class Apex {
             }
         }
 
+        $this->avarage = $this->total / count($vals);
         // dd($means);
         foreach($cols as $ck => $col) {
             if($sorting) {
@@ -91,13 +96,24 @@ class Apex {
             }
 
 
+
             $series[$k] = [
                 "name" => $col,
                 "data" => array_values($vals[$col])
             ];
 
+
+            if(isset($names[$k])) {
+                $series[$k]['name'] = $names[$k];
+            }
+
             if($colGroup) {
-                $series[$k]["name"] = $means[$col] . " " . $col;
+                if(isset($names[$k])) {
+                    $series[$k]['name'] = $names[$k] . " " . $col;
+                }
+                else{
+                    $series[$k]["name"] = $means[$col] . " " . $col;
+                }
                 $series[$k]["group"] = $col;
             }
 
