@@ -79,7 +79,12 @@ const dashboard = {
             const {id, type, title, options} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, options: chart.options}
             options.chart.events = {}
             options.chart.events.legendClick = function(chartContext, seriesIndex, opts) {
-                console.log(chartContext,seriesIndex)
+
+                const lbl = $(chartContext.el).find(`.apexcharts-legend-series[rel=${seriesIndex + 1}]`).attr("seriesname")
+                for(let c of charts) {
+                    if(c.chart_id == id) continue;
+                    $(`#apex-${c.chart_id}`).find(`.apexcharts-legend-series[seriesname*="${lbl}"]`).find(".apexcharts-legend-marker").click()
+                }
             }
             chartInstances[id] = new ApexCharts(document.querySelector(`#apex-${id}`), options)
             console.log(chartInstances[id])
