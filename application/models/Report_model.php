@@ -32,7 +32,7 @@ class Report_model extends CRUD {
     }
 
     public function get($id) {
-        return $this->db->select("r.*, q.sql, q.cron_id,q.db,q.params, f.folder_id, f.folder_name")->where('r.id', $id)
+        return $this->db->select("r.*, q.sql, q.cron_id,q.db,q.params,q.unique_field,q.fields_map, f.folder_id, f.folder_name")->where('r.id', $id)
                         ->join("queries q", "q.id=r.query_id")
                         ->join("folders f", "f.folder_id = r.folder_id")
                         ->get($this->table . " r")->row_array();
@@ -68,6 +68,37 @@ class Report_model extends CRUD {
         }
     }
 
+    public function getReportData($table, $limit = null, $params = [], $filter = [], $filtering = []) {
+        try {
+            if(count($filter ?? []) > 0) {
+                foreach($filter as $f) {
+                    if($this->db->field_exists($f, $table)) {
+                        if(isset($filtering[$f]) && !empty($filtering[$f])) {
+                            $this->db->where_in($f, explode(",", $filtering[$f]));
+                        }
+                    }
+                }
+            }
+            if(count($params ?? []) > 0) {
+                foreach($params as $p) {
+                    if($this->db->field_exists($p, $table)) {
+                        if(isset($filtering[$p])  && !empty($filtering[$f])) {
+                            $this->db->where_in($p, explode(",",$filtering[$p]));
+                        }
+                    }
+                }
+            }
+
+            if($limit && is_numeric($limit)) {
+                $this->db->limit($limit);
+            }
+            
+            return $this->db->select()->from($table)->get()->result_array();
+        } catch(Exception $e) {
+            throw new Exception($e);
+        }
+    }
+
     public function getReportFiles($report_id) {
         return $this->db->select("f.id, f.folder_id, f.name, j.date, j.is_cron, f.location, f.created_at,f.type, r.id")
                     ->from($this->table . " r")
@@ -79,97 +110,86 @@ class Report_model extends CRUD {
                     ->result_array();
     }
 
-    public function generateCrosstabQuery($slice, $tableName) {
-        // Extract the necessary parts from the slice
-        $rows = $slice['rows'];
-        $columns = $slice['columns'];
-        $measures = $slice['measures'];
-        $filters = $slice['filters'] ?? [];
-    
-        // Create the select part of the query
-        $selectParts = [];
-        foreach ($rows as $row) {
-            $selectParts[] = '"' . $row['uniqueName'] . '"';
+    public function createOrInsertOrUpdateReport($database, $table, $unique, $query, $params = []) {
+        $tableExists = true;
+        $this->load->database($database);
+        preg_match_all("/(\{@.*?@\})/muis", $query, $matches);
+
+        foreach($matches[1] ?? [] as $index => $match) {
+            if(isset($params[$index])) {
+                $query = preg_replace("/".$match."./muis", $params[$index], $query);
+            }
         }
-        $selectPartsString = implode(", ", $selectParts);
-    
-        // Create the measures part of the query
-        $measureParts = [];
-        foreach ($measures as $measure) {
-            $measureParts[] = strtoupper($measure['aggregation']) . '("' . $measure['uniqueName'] . '") AS "' . $measure['uniqueName'] . '"';
+        $this->db->trans_start();
+        if(!$this->db->table_exists($table)) {
+            $tableExists = false;
+            $this->db->query("CREATE TABLE {$table} AS {$query}");
         }
-        $measurePartsString = implode(", ", $measureParts);
-    
-        // Create the where clause based on filters
-        $whereParts = [];
-        foreach ($filters as $filter) {
-            $members = implode("', '", $filter['filter']['members']);
-            $whereParts[] = '"' . $filter['uniqueName'] . '" IN (\'' . $members . '\')';
+
+        if(!$this->db->field_exists('id', $table)) {
+            $this->db->query("ALTER TABLE {$table} ADD COLUMN id SERIAL PRIMARY KEY", [$table]);
         }
-        $whereClause = !empty($whereParts) ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+
+
+        if($tableExists) {
+            $queryResult = $this->db->query($query)->result_array();
+            $statements = [];
+            $insertBatch = [];
+            if($unique) {
+                $queryUnique = array_column($queryResult, $unique);
+                $existData = $this->db->select("*")->from($table)->where_in($unique, $queryUnique)->get()->result_array();
+                $existDataUnique = array_column($existData, $unique);
+
+                $keys = array_keys($queryResult[0]);
+                // dd([$keys, $queryResult]);
+                foreach($queryResult as $data) {
+                    if(in_array($data[$unique], $existDataUnique)) {
+                        $update = "UPDATE $table SET ";
+                        $setting = [];
+                        foreach($keys as $key) {
+                            $d = $data[$key];
+                            if(is_null($d)) {
+                                $d = "null";
+                            } else {
+                                $d = "'".$d."'";
+                            }
     
-        // Create the index columns part of the query
-        $indexColumns = [];
-        foreach ($columns as $column) {
-            $indexColumns[] = '"' . $column['uniqueName'] . '"';
+                            if(is_null($data[$unique])) {
+                                $data[$unique]= "null";
+                            } else {
+                                $data[$unique]= "'".$data[$unique]."'";
+                            }
+    
+                            $setting[] = $key . " = " .$d;
+                        }
+                        $update .= implode(",", $setting) . " WHERE " . $unique . " = " . $data[$unique];
+                        $statements[] = $update;
+                    } else {
+                        $insertBatch[] = $data;
+                    }
+                }
+                if(count($statements) > 0) {
+                    $this->db->query(implode(";", $statements));
+                }
+            }
+
+            if(count($insertBatch) > 0) {
+                $this->db->insert_batch($table, $insertBatch);
+            }
         }
-        $indexColumnsString = implode(", ", $indexColumns);
-    
-        // Create the data selection query
-        $dataSelectQuery = "
-            SELECT
-                $selectPartsString,
-                $indexColumnsString,
-                $measurePartsString
-            FROM
-                $tableName
-            $whereClause
-            GROUP BY
-                $selectPartsString, $indexColumnsString
-            ORDER BY
-                $selectPartsString, $indexColumnsString
-        ";
-    
-        // Create the distinct column values query
-        $distinctColumnsQuery = "
-            SELECT DISTINCT $indexColumnsString
-            FROM $tableName 
-            ORDER BY $indexColumnsString
-        ";
-    
-        // Fetch distinct column values dynamically from the database
-        $distinctColumnValues = $this->getDistinctColumnValues($distinctColumnsQuery);
-    
-        // Create the crosstab query
-        $crosstabQuery = "
-            CREATE EXTENSION IF NOT EXISTS tablefunc;
-    
-            SELECT *
-            FROM crosstab(
-                $$ $dataSelectQuery $$,
-                $$ $distinctColumnsQuery $$
-            ) AS ct (
-                $selectPartsString,
-        ";
-    
-        foreach ($distinctColumnValues as $columnValues) {
-            $combinedValues = implode(" - ", $columnValues);
-            $crosstabQuery .= '"' . $combinedValues . '" numeric, ';
-        }
-    
-        // Remove the trailing comma and space
-        $crosstabQuery = rtrim($crosstabQuery, ', ') . "\n);";
-    
-        return $crosstabQuery;
+        $this->db->trans_complete();
     }
-    
-    private function getDistinctColumnValues($query) {
-        return [];
-        $stmt = $this->db->query($query)->row_array();
-        $distinctColumnValues = [];
-        foreach($stmt as $row) {
-            $distinctColumnValues[] = $row;
+
+
+    public function getFieldDistinctValues($table, $fields, $unique) {
+        $jsonBuildObj = [];
+        foreach($fields as $key => $field){
+            if($key == $unique) continue;
+            if(preg_match("/(^id$)|(_id$)/", $key)) continue;
+            $jsonBuildObj[] = "'". $field . "', json_agg(distinct ".$key.")";
         }
-        return $distinctColumnValues;
+        $result = count($jsonBuildObj) > 0 ? $this->db->query("SELECT json_build_object(".implode(",", $jsonBuildObj).") filtering FROM $table")->row_array() : [];
+        return json_decode($result['filtering'], 1);
     }
+
 }

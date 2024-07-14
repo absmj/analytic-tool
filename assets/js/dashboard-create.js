@@ -277,7 +277,7 @@ function generateInputs(data, index, parentKey = '') {
         const inputId = parentKey ? `${parentKey}-${key}` : key;
         const label = parentKey ? `${parentKey}.${key}` : key;
         // console.log(data)
-        if(/^.*?data$/gsi.test(inputId)) continue;
+        if(/^.*?data$/gs.test(inputId)) continue;
         if(!parentKey)
             document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', `<hr><h4 data-bs-toggle="collapse"  data-bs-target=".${inputId}" class="card-title pt-0 mt-0" role="button" aria-expanded="false" aria-controls="${inputId}">${key}</h4>`);
 

@@ -77,10 +77,14 @@ const dashboard = {
 
         for(let chart of charts) {
             const {id, type, title, options} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, options: chart.options}
-
+            options.chart.events = {}
+            options.chart.events.legendClick = function(chartContext, seriesIndex, opts) {
+                console.log(chartContext,seriesIndex)
+            }
             chartInstances[id] = new ApexCharts(document.querySelector(`#apex-${id}`), options)
             console.log(chartInstances[id])
             chartInstances[id].render()
+
         }
         return chartInstances
     }

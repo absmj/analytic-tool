@@ -57,6 +57,7 @@
                         <button id="next" stage="1" type="button" class="mt-2 btn btn-sm btn-primary"><i class="bi bi-chevron-right"></i></button>
                     </div>
                     <div class="table-responsive">
+                        <?php if(count($result ?? []) > 0):?>
                         <table id="table-component" class="table table-hover display">
                             <thead>
                                 <tr>
@@ -75,6 +76,7 @@
                                 <?php endforeach ?>
                             </tbody>
                         </table>
+                        <?php endif?>
                     </div>
                 </div>
 
@@ -123,7 +125,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <?php $this->view("/pages/dashboards/templates/index") ?>
+                    <?php $this->view("/pages/dashboards/templates/list") ?>
                 </div>
             </div>
         </div>

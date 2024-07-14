@@ -117,7 +117,7 @@ class Apex {
                 }
             },
             dataLabels: {
-                enabled: true
+                enabled: false
             },
             stroke: {
                 curve: 'straight'
@@ -145,7 +145,7 @@ class Apex {
             chart: {
                 type: 'bar',
                 height: this.height,
-                stacked: Object.keys(this.data.colValues).length > 0,
+                stacked: false,
                 zoom: {
                     enabled: false
                 }
@@ -188,7 +188,7 @@ class Apex {
                 }
             },
             dataLabels: {
-                enabled: true
+                enabled: false
             },
             title: {
                 text: this.title,
@@ -240,7 +240,7 @@ class Apex {
                 }
             },
             dataLabels: {
-                enabled: true
+                enabled: false
             },
             title: {
                 text: this.title,

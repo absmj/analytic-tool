@@ -26,6 +26,11 @@
                         </div>
 
                         <div class="col-md-6">
+                            <label for="validationDefault01" class="form-label d-flex justify-content-between">Hesabatın cədvəl adı <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Hesabat məlumatlarının bazada saxlanılacağı cədvəl adını ifadə edir."></i></label>
+                            <input value="<?= $report['report_table'] ?? '' ?>" model="Hesabatın cədvəl adı" type="text" class="form-control" name="report_table" required>
+                        </div>
+
+                        <div class="col-md-6">
                             <input type="hidden" name="folder_name" value="<?= $report['folder_name'] ?? '' ?>">
                             <label for="validationDefault01" class="form-label d-flex justify-content-between">Qovluq <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yerləşmə qovluğu, hesabatların tFolderematika və ya digər meyarlar üzrə təsnifləşdirmə üçün nəzərdə tutulub.<br><a href='#' class='nav-link'>Yeni qovluğu yarat</a>"></i></label>
                             <select onmousedown="(function(e){ e.preventDefault(); this.blur(); window.focus(); document.getElementById('folder-select').click() })(event, this)" name="report_folder" class="form-select" required id="folder">
@@ -80,11 +85,11 @@
                     </form>
                     <!-- End Browser Default Validation -->
 
-                    <div id="steptwo" class="d-none">
+                    <form name="report_options" id="steptwo" class="d-none">
                         <div class="table-responsive" id="table-data">
 
                         </div>
-                    </div>
+                    </form>
                 </div>
 
                 <div id="navigation-steps" class="d-flex justify-content-between mt-2">

@@ -74,11 +74,12 @@ class Dashboard extends BaseController
 				]);
 
 		$this->title = "Səhifə yaradılması";
-		$this->load->model("Query_model", "query");
-		$query = $this->report->get($report_id);
 
-		if(!empty($query['sql'])) {
-			$result = $this->report->run($query['db'], $query['sql'], json_decode($query['params'], 1));
+		$report = $this->report->get($report_id);
+
+		if($report['report_table']) {
+			$result = $this->report->getReportData($report['report_table'], 1000, json_decode($report['params'] ?? '[]', 1),array_keys(json_decode($report['fields_map'] ?? '[]', 1)), $this->input->get());
+			
 		}
 
 		$data['result'] = $result ?? [];

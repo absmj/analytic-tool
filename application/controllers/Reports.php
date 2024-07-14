@@ -32,7 +32,9 @@ class Reports extends BaseController
 					if(empty($data)) {
 						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
 					} else {
-						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $data);
+						$keys = array_keys($data[0]);
+						$filteredKeys = array_values(array_filter($keys, function($k){ return $k != 'id'; }));
+						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $filteredKeys);
 					}
 				} else {
 					$this->saveReport($data);
@@ -121,7 +123,7 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
-	private function saveReport($data, $base = null, $isCron = false, $toFile = true)
+	private function saveReport($data, $base = null, $isCron = false, $toFile = false)
 	{
 		try {
 			if(!empty($data)) {
@@ -139,15 +141,23 @@ class Reports extends BaseController
 					"sql" => post("sql"),
 					"db" => post("database"),
 					"cron_id" => $cronJob,
-					"params" => json_encode(post('params'))
+					"params" => json_encode(post('params')),
+					"unique_field" => post("unique"),
+					"fields_map" => json_encode(post('fields'))
 				]);
 
-				$report = $this->report->insert([
+				$reportInsert = [
 					"name" => post("name"),
 					"query_id" => $query,
 					"folder_id" => post("report_folder"),
-					"base" => $base ?? 0
-				]);
+					"base" => $base ?? 0,
+				];
+
+				if(!$toFile){
+					$reportInsert['report_table'] = camelToSnake(post('report_table'));
+				}
+
+				$report = $this->report->insert($reportInsert);
 
 				if($base > 0) {
 					$this->report->update($base, ['is_deleted' => true]);
@@ -190,6 +200,8 @@ class Reports extends BaseController
 					} else {
 						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 					}
+				} else {
+					$this->report->createOrInsertOrUpdateReport(post('database'),post('report_table'),post('unique'),post("sql"),json_decode(post("params"), 1));
 				}
 
 				$this->job->insert($job);
@@ -213,47 +225,5 @@ class Reports extends BaseController
 			"base" => $id 
 		]);
 		echo BaseResponse::ok("Success", $report);
-	}
-
-	public function getData($job) {
-		$job = $this->job->getById($job);
-		// dd($job);
-		$query = $this->query->getById($job['query_id']);
-		$slice = json_decode('{"rows":[{"uniqueName":"job"}],"columns":[{"uniqueName":"contact"},{"uniqueName":"Measures"}],"measures":[{"uniqueName":"age","aggregation":"sum"}]}', 1);
-		
-		if($query["sql"]) {
-			$data = $this->report->run($query['db'], "select * from train", []);
-
-			$pivot = PHPivot::create($data);
-
-			foreach($slice['rows'] as $r) {
-				$pivot->setPivotRowFields($r['uniqueName']);
-			}
-			foreach($slice['columns'] ?? [] as $r) {
-				if($r['uniqueName'] == 'Measures') continue;
-
-				$pivot->setPivotColumnFields($r['uniqueName']);
-			}
-			foreach($slice['measures'] ?? [] as $r) {
-				$pivot->setPivotValueFields($r['uniqueName']);
-			}
-
-			foreach($slice['filters'] ?? [] as $r) {
-				$pivot->addFilter($r['uniqueName'], $r['filter']['members']);
-			}
-			
-			$pivotData = $pivot->generate()->toArray();
-			$apex = new Apex($pivotData);
-			dd($apex->datasets);
-		}
-
-
-		header("Content-Type: application/json");
-		echo BaseResponse::ok("Successfull", $data, 200, false);
-	}
-
-	public function test() {
-		$slice = json_decode('{"rows":[{"uniqueName":"job"}],"columns":[{"uniqueName":"Measures"}],"measures":[{"uniqueName":"age","aggregation":"sum"}]}', 1);
-		dd($this->report->generateCrosstabQuery($slice, 'train'));
 	}
 }

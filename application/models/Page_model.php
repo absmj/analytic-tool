@@ -15,7 +15,7 @@ class Page_model extends CRUD {
     public function get($id) {
         return $this->db->query("
             SELECT 
-                p.id,p.title page_title, p.template, j.date,r.name,r.id report_id,q.sql,q.params,q.db,
+                p.id,p.title page_title, p.template, j.date,r.name,r.id report_id,r.report_table, q.sql,q.params,q.db,q.unique_field,q.fields_map,
                 j.id job_id,
                 f.id file_id, f.name file, location, f.created_at file_created_at, f.folder_id
             FROM {$this->table} p

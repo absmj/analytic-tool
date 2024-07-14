@@ -19,6 +19,11 @@ class CRUD extends CI_Model {
         return $this->db->where_in($field, $argument)->get($this->table)->result_array();
     }
 
+    protected function filterBy($field, $argument) {
+        $this->db->where($field, $argument);
+        return $this;
+    }
+
     public function insert($data) {
         if(!$this->db->insert($this->table, $data))
             throw new Exception(get_called_class() . " :: Yaradılma zamanı xəta baş verdi", 500);
@@ -46,7 +51,7 @@ class CRUD extends CI_Model {
     }
 
     public function __call($name, $arguments) {
-        preg_match("/((find|get)By)(.*)/", $name, $matches);
+        preg_match("/((find|get|filter)By)(.*)/", $name, $matches);
 
         if(isset($matches[1])) {
             return $this->{$matches[1]}(camelToSnake($matches[3]), $arguments);

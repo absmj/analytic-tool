@@ -411,6 +411,9 @@ const formReport = {
 
     if (!this.data.cron_job)
       throw new Error("İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!");
+  
+    if (!this.data.report_table)
+      throw new Error("Hesabatın cədvəl adı daxil edilməyib");
 
     return true;
   },
@@ -421,14 +424,22 @@ const formReport = {
 
       const forms = {
         report: document.forms[`report-form`],
-        query: document.forms[`queryparams-form`]
+        query: document.forms[`queryparams-form`],
+        report_options: document.forms[`report_options`],
       }
 
       const formData = new FormData(forms.report)
       const ff = Object.fromEntries(formData)
       const paramsData = new FormData(forms.query)
       const params = Object.fromEntries(paramsData)
-      this.data = { ...this.data, ...ff, ...params } 
+      const reportOptions = new FormData(forms.report_options)
+      const rOpts = Object.fromEntries(reportOptions)
+      const fields = new Object;
+      $("[data-target='fields']").each(function() {
+        fields[$(this).attr('data-field')] = $(this).val()
+      });
+      this.data = { ...this.data, ...ff, ...params, ...rOpts, fields} 
+
       this.validity();
 
       if(!forms.report.checkValidity()) {
@@ -451,9 +462,10 @@ const formReport = {
       if(queryFormModal._isShown) queryFormModal.hide();
 
       const step = $(e).attr('data-step');
-
+      console.log(this.data)
       $(e).prop("disabled", true)
-      uiInterface.loading = true
+      uiInterface.loading = true;
+
       const response = await $.post(`/reports/${isEdit ? `edit/${reportId}` : 'create'}`, { ...this.data, step });
       
       if(step == 0) {
@@ -475,8 +487,24 @@ const formReport = {
   },
 
   generateTable(data) {
-    console.log(data)
-    table.innerHTML = (`<table class='table table-hover'><thead><tr>${Object.keys(data[0]).map(th => `<th>${th}</th>`).join("")}</tr></thead><tbody>${data.map(td => `<tr>${Object.values(td).map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}</tbody><table>`)
+    table.innerHTML = `
+    <h5>Sütunlar</h5>
+    <p class='text-muted'>Filterasiya zamanı tətbiq ediləcək sütunlar</p>
+    <small>Hər bir sütunun solundakı seçimi etməklə, unikal sütunu təyin edə bilərsiniz. Bu sütun cədvəldə data-ların yenilənməsi üçün təyin edilib.</small>
+    <hr>
+    <div class="row">
+    ${
+      data.map(d => `<div class="col-md-3">
+                        <div class="form-check position-relative">
+                            <button type="button" onclick="this.parentNode.remove()" style="right:0" class="position-absolute btn btn-sm btn-danger">Sil</button>
+                            <input type="radio" class="form-check-input" name="unique" value="${d}">
+                            <input data-field="${d}" value="${d}" type="text" class="form-control form-check-label" data-target="fields" required>
+                        </div>
+                      </div>`).join("")
+    }
+
+    </div>
+    `;
   },
 
   init() {

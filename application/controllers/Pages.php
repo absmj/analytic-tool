@@ -19,149 +19,74 @@ class Pages extends BaseController
 		$this->page("index", $data);
 	}
 
-	public function get($id)
+	public function get($id, $filter = 0)
 	{
 		$this->load->model("Chart_model", "chart");
 		$this->load->model("Report_model", "report");
 		$this->load->helper(["pivot", "apex"]);
 		$page = $this->page->get($id);
-		
+
 		$charts = $this->chart->findByPageId($page['id']);
 
 		$data['page'] = $page;
+
 		// dd($page);
-		if($page['sql']) {
-
-			$data = $this->report->run($page['db'], $page['sql'], json_decode($page['params'] ?? '[]', 1));
-			
-		}
-		// dd($data);
-
-		$rows = [];
-		$charts_ = [];
-		foreach ($charts as $chart) {
-			$day = null; $month = null; $year = null;
-			$chart['row_index'] = (int)$chart['row_index'];
-			// var_dump($chart['row_index']);
-			if (is_int((int)$chart['row_index'])) {
-				$slice = json_decode($chart['slice'], 1);
-				$pivot = PHPivot::create($data);
-				foreach(array_merge($slice['rows'], $slice['columns']) ?? [] as $r) {
-					if($r['uniqueName'] == 'Measures') continue;
-
-					if(preg_match("/\..*$/mui", $r['uniqueName'])){
-						$part = preg_replace("/(.*?)(\..*)$/mui", "$1", $r['uniqueName']);
-						foreach($data as &$d) {
-							if(preg_match("/\.Day$/mui", $r['uniqueName'])){
-								$day = preg_replace("/(.*\/)(\d{1,2})(\/.*)/mui", "$2", $d[$part]);
-								$d[$r['uniqueName']] = $day;
-							} else if(preg_match("/\.Month$/mui", $r['uniqueName'])){
-								$month = preg_replace("/(\d{1,2})(.*)(\/.*)/mui", "$1", $d[$part]);
-								$d[$r['uniqueName']] = $month;
-							}  else if(preg_match("/\.Year$/mui", $r['uniqueName'])){
-								$year = preg_replace("/(.*)(\/.*\/)(\d{1,2})/mui", "$3", $d[$part]);
-								$d[$r['uniqueName']] = $year;
-							}
-						}
-					}
-				}
-
-				$pivot = PHPivot::create($data);
-
-				foreach($slice['rows'] as $r) {
-					$pivot->setPivotRowFields($r['uniqueName']);
-				}
-				foreach($slice['columns'] ?? [] as $r) {
-					if($r['uniqueName'] == 'Measures') continue;
-
-
-					$pivot->setPivotColumnFields($r['uniqueName']);
-				}
-
-				foreach($slice['measures'] ?? [] as $r) {
-					// $pivot->setPivotColumnFields($r['uniqueName']);
-					$pivot->setPivotValueFields($r['uniqueName'], $r['aggregation'] == 'count' ? PHPivot::PIVOT_VALUE_COUNT : PHPivot::PIVOT_VALUE_SUM);
-				}
-	
-				foreach($slice['filters'] ?? [] as $r) {
-					$pivot->addFilter($r['uniqueName'], $r['filter']['members']);
-				}
-
-				$sorting = null;
-				if(isset($slice['sorting'])) {
-					if(isset($slice['sorting']['column'])) {
-						// dd(1);
-						$sorting = $slice['sorting']['column']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
-					}
-					if(isset($slice['sorting']['row'])) {
-						$sorting = $slice['sorting']['row']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
-					}
-				}
-				
-				$pivotData = $pivot->generate()->toArray();
-
-				// dd($pivotData);
-				$chart['options'] = json_decode($chart['chart_options'], 1);
-				// dd($chart['options']['labels']);
-				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
-				$chart['options']['series'] = $apex->datasets;
-				if($month){
-					$mounth = array_map("mounthConverter", $apex->labels);
-					$chart['options']['xaxis'] = [];
-					$chart['options']['xaxis']['categories'] = $mounth;
-					$chart['options']['labels'] = $mounth;	
-				} else {
-					$chart['options']['xaxis']['categories'] = $apex->labels;
-					$chart['options']['labels'] = $apex->labels;
-				}
-
-				preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'], $matches);
-
-				foreach($matches[1] as $match) {
-					if(!is_null($apex->{$match})) {
-						$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
-					}
-				}
-
-				$rows[$chart['row_index']][] = $chart;
-				$charts_[] = $chart;
-			}
+		if($page['report_table']) {
+			$result = $this->report->getReportData($page['report_table'], null, json_decode($page['params'] ?? '[]', 1),array_keys(json_decode($page['fields_map'] ?? '[]', 1)), $this->input->get());
 		}
 
+		$pivotting = $this->makingChart($charts, $result);
+		$rows = $pivotting[0];
+		$data['charts'] = $pivotting[1];
 		// dd($charts_[0]);
 		ksort($rows);
 		foreach ($rows as &$row) {
 			ksort($row);
 		}
+
 		$data['rows'] = $rows;
-		$data['charts'] = $charts_;
 		$data['page'] = $page;
+
+		$data['template'] = $page['template'];
+		if($filter) {
+			echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
+			exit;
+		} else {
+			$fieldMaps = json_decode($page['fields_map'], 1);
+			$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
+			$data['fieldMaps'] = array_flip($fieldMaps);
+			$data['filters'] = $filters;
+			$this->set("styles", [
+				"css/folder.css"
+			])
+				->set("vendorStyles", [
+					"vendor/pivottable/pivot.css",
+					"vendor/datatables/datatables.css"
+				])
+				->set("vendorScripts", [
+					"vendor/datatables/datatables.min.js",
+					"js/functions.js",
+					"js/mock-data.js",
+					"js/template.js",
+					"vendor/pivottable/pivottable.js"
+				])
+				->set("vendorScripts", [
+					"js/functions.js",
+					"js/mock-data.js"
+				])
+				->set("scripts", [
+					"js/chart-visual.js",
+				]);
+			// dd($data);
+			$this->page("dashboards/templates/index", $data, false);
+		}
+
+
+
 		// dd($data['charts']);
 		// dd($data['rows']);
 
-		$this->set("styles", [
-			"css/folder.css"
-		])
-			->set("vendorStyles", [
-				"vendor/pivottable/pivot.css",
-				"vendor/datatables/datatables.css"
-			])
-			->set("vendorScripts", [
-				"vendor/datatables/datatables.min.js",
-				"js/functions.js",
-				"js/mock-data.js",
-				"js/template.js",
-				"vendor/pivottable/pivottable.js"
-			])
-			->set("vendorScripts", [
-				"js/functions.js",
-				"js/mock-data.js"
-			])
-			->set("scripts", [
-				"js/chart-visual.js",
-			]);
-
-		$this->page("dashboards/templates/" . $page['template'], $data, false);
+		
 	}
 
 	public function create($report_id)
@@ -234,5 +159,97 @@ class Pages extends BaseController
 		echo BaseResponse::ok("Success", ["view" => $this->view("templates/" . $name, [], true)]);
 	}
 
+	private function makingChart($charts, $data) {
+		$charts_ = []; $rows = [];
+		foreach ($charts as $chart) {
+			$day = null; $month = null; $year = null;
+			$chart['row_index'] = (int)$chart['row_index'];
+			// var_dump($chart['row_index']);
+			if (is_int((int)$chart['row_index']) && count($data ?? []) > 0) {
+				$slice = json_decode($chart['slice'], 1);
+				$pivot = PHPivot::create($data);
+				foreach(array_merge($slice['rows'], $slice['columns']) ?? [] as $r) {
+					if($r['uniqueName'] == 'Measures') continue;
+
+					if(preg_match("/\..*$/mui", $r['uniqueName'])){
+						$part = preg_replace("/(.*?)(\..*)$/mui", "$1", $r['uniqueName']);
+						foreach($data as &$d) {
+							if(preg_match("/\.Day$/mui", $r['uniqueName'])){
+								$day = preg_replace("/(.*\/)(\d{1,2})(\/.*)/mui", "$2", $d[$part]);
+								$d[$r['uniqueName']] = $day;
+							} else if(preg_match("/\.Month$/mui", $r['uniqueName'])){
+								$month = preg_replace("/(\d{1,2})(.*)(\/.*)/mui", "$1", $d[$part]);
+								$d[$r['uniqueName']] = $month;
+							}  else if(preg_match("/\.Year$/mui", $r['uniqueName'])){
+								$year = preg_replace("/(.*)(\/.*\/)(\d{1,2})/mui", "$3", $d[$part]);
+								$d[$r['uniqueName']] = $year;
+							}
+						}
+					}
+				}
+
+				$pivot = PHPivot::create($data);
+
+				foreach($slice['rows'] as $r) {
+					$pivot->setPivotRowFields($r['uniqueName']);
+				}
+				foreach($slice['columns'] ?? [] as $r) {
+					if($r['uniqueName'] == 'Measures') continue;
+
+
+					$pivot->setPivotColumnFields($r['uniqueName']);
+				}
+
+				foreach($slice['measures'] ?? [] as $r) {
+					// $pivot->setPivotColumnFields($r['uniqueName']);
+					$pivot->setPivotValueFields($r['uniqueName'], $r['aggregation'] == 'count' ? PHPivot::PIVOT_VALUE_COUNT : PHPivot::PIVOT_VALUE_SUM);
+				}
+	
+				foreach($slice['filters'] ?? [] as $r) {
+					$pivot->addFilter($r['uniqueName'], $r['filter']['members']);
+				}
+
+				$sorting = null;
+				if(isset($slice['sorting'])) {
+					if(isset($slice['sorting']['column'])) {
+						// dd(1);
+						$sorting = $slice['sorting']['column']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
+					}
+					if(isset($slice['sorting']['row'])) {
+						$sorting = $slice['sorting']['row']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
+					}
+				}
+				$pivotData = $pivot->generate()->toArray();
+
+				// dd($pivotData);
+				$chart['options'] = json_decode($chart['chart_options'], 1);
+				// dd($chart['options']['labels']);
+				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
+				$chart['options']['series'] = $apex->datasets;
+				if($month){
+					$mounth = array_map("mounthConverter", $apex->labels);
+					$chart['options']['xaxis'] = [];
+					$chart['options']['xaxis']['categories'] = $mounth;
+					$chart['options']['labels'] = $mounth;	
+				} else {
+					$chart['options']['xaxis']['categories'] = $apex->labels;
+					$chart['options']['labels'] = $apex->labels;
+				}
+
+				preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'], $matches);
+
+				foreach($matches[1] as $match) {
+					if(!is_null($apex->{$match})) {
+						$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
+					}
+				}
+
+				$rows[$chart['row_index']][] = $chart;
+				$charts_[] = $chart;
+			}
+		}
+		// dd($charts_);
+		return [$rows, $charts_];
+	}
 	
 }
