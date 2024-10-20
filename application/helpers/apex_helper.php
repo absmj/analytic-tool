@@ -16,6 +16,12 @@ class Apex {
         // dd($data);
         if($labels == null || empty($labels)) $this->labels = array_values(array_filter(array_keys($data), function($k) { return $k != '_type'; }));
         else $this->labels = $labels;
+
+        foreach($this->labels as &$label) {
+            if(empty($label)) {
+                $label = "Bilinməyən";
+            }
+        }
         $labels = [];
         if(is_array($slice)) {
             // dd(array_merge($slice['rows'], $slice['columns']));
@@ -114,26 +120,15 @@ class Apex {
                 else{
                     $series[$k]["name"] = $means[$col] . " " . $col;
                 }
-                $series[$k]["group"] = $col;
+                $series[$k]["label"] = $col;
             }
 
             $k++;
         }
 
-        switch($type) {
-            case "pie":
-            case "donut":
-                $data_ = [];
-                array_walk_recursive($series, function($d, $v) use(&$data_) {
-                    if(is_numeric($d)) {
-                        array_push($data_, (int)$d);
-                    }
-                });
+        return $series;
 
-                return $data_;
-            default:
-                return $series;
-        }
+
         // dd($series);
 
     }

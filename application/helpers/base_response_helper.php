@@ -2,6 +2,16 @@
 
 class BaseResponse
 {
+    public static function post() {
+        $post = file_get_contents("php://input");
+
+        if(!$post) {
+            $post = $_POST;
+        }
+
+        return $post;
+    }
+
     public static function ok($message = "Successfull", $data = [], $status = StatusCodes::HTTP_OK, $br = true) {
         header("Content-Type: application/json", true, $status);
         return json_encode($br ? [

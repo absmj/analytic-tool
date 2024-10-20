@@ -16,6 +16,8 @@ class Pages extends BaseController
 	public function index()
 	{
 		$data['pages'] = $this->page->list();
+		echo BaseResponse::ok("Success", $data['pages']);
+		exit;
 		$this->page("index", $data);
 	}
 
@@ -38,6 +40,12 @@ class Pages extends BaseController
 		$pivotting = $this->makingChart($charts, $result);
 		$rows = $pivotting[0];
 		$data['charts'] = $pivotting[1];
+		$fieldMaps = json_decode($page['fields_map'], 1);
+		$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
+		$data['fieldMaps'] = array_flip($fieldMaps);
+		$data['filters'] = $filters;
+		echo BaseResponse::ok("Success", $data);
+		exit;
 		// dd($charts_[0]);
 		ksort($rows);
 		foreach ($rows as &$row) {
@@ -48,7 +56,7 @@ class Pages extends BaseController
 		$data['page'] = $page;
 
 		$data['template'] = $page['template'];
-		if($filter) {
+		if($this->input->get()) {
 			echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
 			exit;
 		} else {
@@ -78,7 +86,8 @@ class Pages extends BaseController
 					"js/chart-visual.js",
 				]);
 			// dd($data);
-			$this->page("dashboards/templates/index", $data, false);
+			echo BaseResponse::ok("Success", $data);
+			// $this->page("dashboards/templates/index", $data, false);
 		}
 
 
@@ -225,28 +234,31 @@ class Pages extends BaseController
 				$chart['options'] = json_decode($chart['chart_options'], 1);
 				// dd($chart['options']['labels']);
 				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
-				$chart['options']['series'] = $apex->datasets;
+				$chart['options']['data'] = ['datasets' => $apex->datasets];
+				// dd($month);
 				if($month){
 					$mounth = array_map("mounthConverter", $apex->labels);
-					$chart['options']['xaxis'] = [];
-					$chart['options']['xaxis']['categories'] = $mounth;
-					$chart['options']['labels'] = $mounth;	
+					// $chart['options']['xaxis'] = [];
+					$chart['options']['data']['labels'] = $mounth;	
 				} else {
-					$chart['options']['xaxis']['categories'] = $apex->labels;
-					$chart['options']['labels'] = $apex->labels;
+					$chart['options']['data']['labels'] = $apex->labels;
 				}
+				$chart['options']['type'] = $chart['chart_type'];
 
-				preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'], $matches);
+				// $chart['options']['xaxis']['type'] = "category";
 
-				foreach($matches[1] as $match) {
-					if(!is_null($apex->{$match})) {
-						$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
-					}
-				}
+				// preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'] ?? '', $matches);
+
+				// foreach($matches[1] as $match) {
+				// 	if(!is_null($apex->{$match})) {
+				// 		$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
+				// 	}
+				// }
 
 				$rows[$chart['row_index']][] = $chart;
 				$charts_[] = $chart;
 			}
+
 		}
 		// dd($charts_);
 		return [$rows, $charts_];

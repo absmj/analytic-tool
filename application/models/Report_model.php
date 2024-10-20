@@ -62,7 +62,19 @@ class Report_model extends CRUD {
         try {
             $this->load->database($database);
             $sql = preg_replace("/\{@.*?@\}/muis", "?", $sql);
-            return $this->db->query($sql, $params)->result_array();
+            $result = $this->db->query($sql, $params)->result_array();
+            foreach($result as &$r) {
+                foreach($r as $rk => $v) {
+                    if(preg_match("/date$/i", $v)) {
+                        $timestamp = strtotime($v);
+                        $r[$rk . ".Date"] = date('d', $timestamp);
+                        $r[$rk . ".Month"] = date('m', $timestamp);
+                        $r[$rk . ".Year"] = date('Y', $timestamp);
+                        $r[$rk . ".Timestamp"] =$timestamp;
+                    }
+                }
+            }
+            return $result;
         } catch(Exception $e) {
             throw new Exception($e);
         }
@@ -93,7 +105,19 @@ class Report_model extends CRUD {
                 $this->db->limit($limit);
             }
             
-            return $this->db->select()->from($table)->get()->result_array();
+            $result = $this->db->select()->from($table)->get()->result_array();
+            foreach($result as &$r) {
+                foreach($r as $rk => $v) {
+                    if(preg_match("/date$/i", $v)) {
+                        $timestamp = strtotime($v);
+                        $r[$rk . ".Date"] = date('d', $timestamp);
+                        $r[$rk . ".Month"] = date('m', $timestamp);
+                        $r[$rk . ".Year"] = date('Y', $timestamp);
+                        $r[$rk . ".Timestamp"] =$timestamp;
+                    }
+                }
+            }
+            return $result;
         } catch(Exception $e) {
             throw new Exception($e);
         }
@@ -157,7 +181,7 @@ class Report_model extends CRUD {
                             if(is_null($data[$unique])) {
                                 $data[$unique]= "null";
                             } else {
-                                $data[$unique]= "'".$data[$unique]."'";
+                                $data[$unique]= $data[$unique];
                             }
     
                             $setting[] = $key . " = " .$d;

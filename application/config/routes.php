@@ -63,3 +63,11 @@ $route['page/(:num)/edit'] = "pages/edit/$1";
 
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: *');
+header("Access-Control-Allow-Headers: *");
+
+
+
+

@@ -514,7 +514,7 @@ var optionsLine = {
 function renderMockData(arr) {
     const instances = {}
     arr.forEach((element, k) => {
-        instances[element.el] = new ApexCharts(document.querySelector(element.el), element.op)
+        instances[element.el] = new ApexCharts(document.querySelector(element.el), window[element.op])
     });
     return instances
 }

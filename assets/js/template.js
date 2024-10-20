@@ -77,7 +77,10 @@ const dashboard = {
 
         for(let chart of charts) {
             const {id, type, title, options} = {id: chart.chart_id, type: chart.chart_type, title: chart.title, options: chart.options}
+            console.log(options)
+            // options.chart.xaxis.labels.style.fontSize='10px'
             options.chart.events = {}
+
             options.chart.events.legendClick = function(chartContext, seriesIndex, opts) {
 
                 const lbl = $(chartContext.el).find(`.apexcharts-legend-series[rel=${seriesIndex + 1}]`).attr("seriesname")

@@ -1,8 +1,9 @@
 <?php
 
 defined('BASEPATH') OR exit('No direct script access allowed');
+require_once APPPATH . "custom/BaseController.php";
 
-class Folders extends CI_Controller {
+class Folders extends BaseController {
 
     public function __construct() {
         parent::__construct();
@@ -13,7 +14,7 @@ class Folders extends CI_Controller {
     // Get all folders (accessible via POST)
     public function all() {
         $folders = $this->Folder_model->list();
-        echo json_encode($folders);
+        echo BaseResponse::ok("Successfull", $folders);
     }
 
     // Create a new folder (accessible via POST)

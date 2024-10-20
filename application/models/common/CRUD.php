@@ -43,6 +43,18 @@ class CRUD extends CI_Model {
         return $this->db->affected_rows();
     }
 
+    public function updateBatch($id, $data) {
+        $statements = [];
+        foreach($data as $key => $value) {
+            if(!isset($value[$id])) continue;
+            $statements[] = $this->db->where($id, $value[$id])->get_compiled_update($this->table, array_diff_key($value, array_flip($id)));
+        }
+        
+        if(count($statements) > 0) $this->db->query(implode(";", $statements));
+        
+        return $this->db->affected_rows();
+    }
+
     public function delete($id) {
         if(!$this->db->where('id', $id)->delete($this->table))
             throw new Exception(get_called_class() . " :: Silinmə zamanı xəta baş verdi", 500);

@@ -20,14 +20,16 @@ class Reports extends BaseController
 	public function index()
 	{
 		$data['reports'] = $this->report->list();
-		$this->page("index", $data);
+
+		echo BaseResponse::ok("Success", $data['reports']);
+		// $this->page("index", $data);
 	}
 
 	public function create()
 	{
 		if (isPostRequest()) {
 			try {
-				$data = $this->report->run(post('database'), post('sql'), post('params'));
+				$data = $this->report->run(post('db'), post('sql'), post('params'));
 				if(post("step") == 0) {
 					if(empty($data)) {
 						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
@@ -71,7 +73,22 @@ class Reports extends BaseController
 	}
 
 	public function get($report_id) {
-		$data['report'] = $this->report->getById($report_id);
+		$data['report'] = $this->report->get($report_id);
+		echo BaseResponse::ok("Success", $data['report']);
+	}
+
+	public function run($report_id) {
+		$report = $this->report->get($report_id);
+
+		$this->report->createOrInsertOrUpdateReport($report['db'],$report['report_table'],$report['unique_field'],$report["sql"],json_decode($report["params"], 1));
+		$job = [
+			"query_id" => $report['query_id'],
+			"report_id" => $report['id'],
+			"is_cron" => false
+		];
+
+		$this->job->insert($job);
+		echo BaseResponse::ok("Success");
 	}
 
 	public function edit($report_id) {
@@ -115,7 +132,8 @@ class Reports extends BaseController
 
 		$data['crons'] = $this->cron->list();
 		// dd($data);
-		$this->page("form", $data);
+		echo BaseResponse::ok("Success", $data['report']);
+		// $this->page("form", $data);
 	}
 
 	public function delete($report_id) {
@@ -123,14 +141,14 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
-	private function saveReport($data, $base = null, $isCron = false, $toFile = false)
+	private function saveReport($data, $base = null, $isCron = false, $toFile = false, $manual = false)
 	{
 		try {
 			if(!empty($data)) {
-				$cronJob = $this->cron->getByJob(post('cron_job'));
+				$cronJob = $this->cron->getByJob(post('cron_id'));
 				if(empty($cronJob)) {
 					$cronJob = $this->cron->insert([
-						"job" => post('cron_job'),
+						"job" => post('cron_id'),
 						"title" => post("cron_title")
 					]);
 				} else {
@@ -139,7 +157,7 @@ class Reports extends BaseController
 				
 				$query = $this->query->insert([
 					"sql" => post("sql"),
-					"db" => post("database"),
+					"db" => post("db"),
 					"cron_id" => $cronJob,
 					"params" => json_encode(post('params')),
 					"unique_field" => post("unique"),
@@ -169,39 +187,41 @@ class Reports extends BaseController
 					"is_cron" => $isCron
 				];
 
-				if($toFile) {
-					// File operation
-					$folder = APPPATH . "reports";
-					$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
-					$report_name = post("name")."-".$report;
-					$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
-					$header = array_keys($data[0]);
-
-					// https://stackoverflow.com/a/2303377
-					if(!file_exists($report_folder)) 
-						mkdir($report_folder, 0777, true);
-					
-					$fp = fopen($csv, 'w');
-
-					fputcsv($fp, $header);
-
-					if($fp) {
-						foreach($data as $d) {
-							fputcsv($fp, $d);
-						}
+				if($manual) {
+					if($toFile) {
+						// File operation
+						$folder = APPPATH . "reports";
+						$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
+						$report_name = post("name")."-".$report;
+						$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
+						$header = array_keys($data[0]);
+	
+						// https://stackoverflow.com/a/2303377
+						if(!file_exists($report_folder)) 
+							mkdir($report_folder, 0777, true);
 						
-						$file = $this->file->insert([
-							"name" => $report_name,
-							"location" => $csv,
-							"folder_id" => post("report_folder"),
-							"type" => "csv"
-						]);
-						$job['file_id'] = $file;
+						$fp = fopen($csv, 'w');
+	
+						fputcsv($fp, $header);
+	
+						if($fp) {
+							foreach($data as $d) {
+								fputcsv($fp, $d);
+							}
+							
+							$file = $this->file->insert([
+								"name" => $report_name,
+								"location" => $csv,
+								"folder_id" => post("report_folder"),
+								"type" => "csv"
+							]);
+							$job['file_id'] = $file;
+						} else {
+							throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
+						}
 					} else {
-						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
+						$this->report->createOrInsertOrUpdateReport(post('db'),post('report_table'),post('unique'),post("sql"),json_decode(post("params"), 1));
 					}
-				} else {
-					$this->report->createOrInsertOrUpdateReport(post('database'),post('report_table'),post('unique'),post("sql"),json_decode(post("params"), 1));
 				}
 
 				$this->job->insert($job);
@@ -226,4 +246,10 @@ class Reports extends BaseController
 		]);
 		echo BaseResponse::ok("Success", $report);
 	}
+
+	public function db_list() {
+		echo BaseResponse::ok("Successfull", dblist());
+	}
+
+	
 }

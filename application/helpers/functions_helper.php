@@ -45,6 +45,7 @@ if (!function_exists('isPostRequest')) {
 if (!function_exists('post')) {
     function post($field = null)
     {
+        
         return !$field ? $_POST : ($_POST[$field] ?? null);
     }
 }
@@ -144,6 +145,20 @@ function mounthConverter($mounth) {
                                                     return "Noyabr";        case 12:
                                                         return "Dekabr";
     }
+}
+
+// Error/Exception helper
+function api_error($error, $errno = 500) {
+
+    http_response_code($errno);
+    header('Content-Type: application/json');
+
+    return json_encode([
+        'success' => false,
+        'status' => $errno,
+        'errno'   => $errno,
+        'message'   => $error,
+    ]);
 }
 
 ?>

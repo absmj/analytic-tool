@@ -34,7 +34,7 @@ class BaseController extends CI_Controller {
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/simple-datatables/simple-datatables.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/tinymce/tinymce.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/php-email-form/validate.js";
-
+        $this->vendorScripts[] = BASE_PATH . "assets/vendor/lodash/lodash.js";
         $this->styles[] = BASE_PATH . "assets/css/style.css";
         $this->scripts[] = BASE_PATH . "assets/js/main.js";
         $this->scripts[] = BASE_PATH . "assets/js/ui.js";

@@ -39,7 +39,8 @@ const pageWizard = {
     charts: new Map,
     // last chart
     get chart() {
-        return this.charts[this.charts.length-1]
+        const keys = [...this.charts.keys()]
+        return this.charts.get(keys.length-1)
     },
 
     chartOptions(index) {
@@ -77,7 +78,8 @@ const pageWizard = {
 
     // set last chart
     set chart(data) {
-        this.charts.splice(-1, 1, data)
+        const keys = [...this.charts.keys()]
+        his.charts.set(keys.length-1, data)
     },
 
     get currentStep() {
@@ -177,6 +179,7 @@ $("[data-template]").on("click", async function() {
         $("#writing").removeClass("d-none")
         $("#dashboard").html(response.data.view)
         dashboard.init()
+        console.log(dashboard.instances)
         choosingTemplate.hide()
 
         pageWizard.currentStep = 3
@@ -192,6 +195,7 @@ $("#writing").on("click", ".chart-type", async function() {
         // const req = await $.get(BASE_URL +  "chart/" + $(this).attr("data-type"))
         // $("#chart-type-versions").html(req.data.view)
         const uuid = $(this).parents("[data-action]").attr("data-id")
+
         pageWizard.charts.set(uuid, {
             id: uuid,
             file: pageWizard.selected.file,
@@ -203,8 +207,10 @@ $("#writing").on("click", ".chart-type", async function() {
             rowIndex:  $(this).parents(".chart-row").attr("data-row-index"),
             colIndex: $(this).parents("[class^='col']").attr("data-col-index"),
             instance: null,
+            options: dashboard.instances[$(this).parents("[data-action]").attr("data-target-modal")],
             slice: $(this).parent().attr("data-report-slice") || null
         })
+        
     
         $("#add-chart").attr({
             'data-affected-element': $(this).parents("[data-action]").attr("data-target-modal"),
@@ -213,8 +219,10 @@ $("#writing").on("click", ".chart-type", async function() {
         })
     
         const chart = pageWizard.charts.get(uuid)
+
+        const chartCurrentOptions = chart.options.opts
         
-        chart.slice = JSON.parse(chart.slice)
+        chart.slice = typeof chart.slice == 'object' ? chart.slice : JSON.parse(chart.slice)
     
         new WebDataRocks({
             container: "#wdr-component",
@@ -228,19 +236,18 @@ $("#writing").on("click", ".chart-type", async function() {
     
             reportchange: function() {
                 webdatarocks.getData({}, function(e) {
-                    if(chart.instance instanceof Apex) {
-                        chart.instance.apex.destroy()
-                    }
+                    chart.instance.apex.destroy();
 
                     chart.slice = webdatarocks.getReport().slice;
                     $("#add-chart").attr({
                         'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
                     })
-                    chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
-                    console.log(chart.instance[chart.type])
-                    chart.instance.render()
+
                     $("#chart-options-form").html('');
-                    generateInputs(pageWizard.chartOptions(uuid), uuid)
+                    generateInputs(chart.instance[chart.type], uuid)
+                    chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
+                    chart.instance.render()
+
                 })
             },
             reportcomplete: function() {
@@ -250,12 +257,13 @@ $("#writing").on("click", ".chart-type", async function() {
                         return;
                     }
                     chart.slice = webdatarocks.getReport().slice
+                    console.log(chartCurrentOptions)
                     if(!(chart.instance instanceof Apex))
                         chart.instance = new Apex("#chart-component", e, chart.type, $(".chart-title").val() || '')
                     chart.instance.render()
-                    console.log(chart.instance[chart.type])
+
                     $("#chart-options-form").html('');
-                    generateInputs(pageWizard.chartOptions(uuid), uuid)
+                    generateInputs(chart.instance[chart.type], uuid)
                     $("#add-chart").attr({
                         'data-report-slice': JSON.stringify(webdatarocks.getReport().slice)
                     })
@@ -270,27 +278,44 @@ $("#writing").on("click", ".chart-type", async function() {
     }
 })
 
+let userInputOptions = {};
+function generateInputs(data, index, parentKey = '', defaults = null) {
 
-function generateInputs(data, index, parentKey = '') {
+    if(defaults === null) {
+
+        const apexOptions = [
+            ...Object.getOwnPropertyNames(ApexOptions).filter(prop => typeof ApexOptions[prop] === "function"),
+        ]
+        defaults = new Object;
+        for(let i in apexOptions) {
+            const optFunc = ApexOptions[apexOptions[i]](data.chart.type);
+            defaults[apexOptions[i]] = optFunc;
+        }
+        data = {...defaults, ...data};
+        userInputOptions = data;
+    }
+
+
     for (let key in data) {
+
         const value = data[key];
         const inputId = parentKey ? `${parentKey}-${key}` : key;
         const label = parentKey ? `${parentKey}.${key}` : key;
-        // console.log(data)
+
         if(/^.*?data$/gs.test(inputId)) continue;
         if(!parentKey)
             document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', `<hr><h4 data-bs-toggle="collapse"  data-bs-target=".${inputId}" class="card-title pt-0 mt-0" role="button" aria-expanded="false" aria-controls="${inputId}">${key}</h4>`);
 
         if (typeof value === 'object') {
             // Recursively generate inputs for nested objects
-            generateInputs(value, index, inputId);
+            generateInputs(value, index, inputId, defaults);
         } else {
             // Generate input fields based on the type of value
             if (typeof value === 'boolean') {
                 // For boolean values, generate a switcher
                 const switcherHTML = `
                     <div class="collapse form-check form-switch ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
-                        <input onchange="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.checked)" class="form-check-input" type="checkbox" id="${inputId}">
+                        <input onchange="changeState('${index}', '${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")}', this.checked ? true : false)" ${value ? 'checked' : ''} class="form-check-input" type="checkbox" id="${inputId}">
                         <label class="form-check-label" for="${inputId}">${label}</label>
                     </div>
                 `;
@@ -299,15 +324,15 @@ function generateInputs(data, index, parentKey = '') {
                 const colorinput = `
                     <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
                         <label for="${inputId}" class="form-label">${label}</label>
-                        <input onchange="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="color" class="form-control" id="${inputId}" value="${value}">
+                        <input onchange="changeState('${index}', '${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")}', this.value)" type="color" class="form-control" id="${inputId}" value="${value}">
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', colorinput);
-            } else if(/\d+(px)/.test(value)) {
+            } else if(/\d+(px)|[\d\.]+/.test(value)) {
                 const rangeinput = `
                     <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
                         <label for="${inputId}" class="form-label">${label}</label>
-                        <input oninput="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="range" class="form-range" id="${inputId}" value="${value}">
+                        <input step="${value > 0 && value % 1 === 0 ? 0.1 : 1}" max="${value > 0 && value % 1 === 0 ? 1 : 1000}" oninput="changeState('${index}', '${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")}', this.value)" type="range" class="form-range" id="${inputId}" value="${value}">
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', rangeinput);
@@ -316,7 +341,7 @@ function generateInputs(data, index, parentKey = '') {
                 const inputHTML = `
                     <div class="collapse mb-3 ${parentKey.replace(/(.*?)-.*/gm, "$1")}">
                         <label for="${inputId}" class="form-label">${label}</label>
-                        <input onfocusout="changeState('${index}', () => pageWizard.chartOptions('${index}')${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")} = this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
+                        <input onfocusout="changeState('${index}', '${inputId.replace(/-*(\w+)-*/g, '.$1').replace(/\.*(\d+)/gm, "[$1]")}', this.value)" type="text" class="form-control" id="${inputId}" value="${value}">
                     </div>
                 `;
                 document.getElementById('chart-options-form').insertAdjacentHTML('beforeend', inputHTML);
@@ -394,7 +419,8 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 })
 
-function changeState(index, callback) {
-    callback()
-    pageWizard.charts.get(index).instance.apex.updateOptions(pageWizard.chartOptions(index))
+function changeState(index, key,  value) {
+    key = key.replace(/^\./, "")
+    const userInputs = _.set(pageWizard.chartOptions(index), key, value)
+    pageWizard.charts.get(index).instance.apex.updateOptions(userInputs)
 }
