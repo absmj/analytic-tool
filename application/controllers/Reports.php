@@ -251,5 +251,20 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Successfull", dblist());
 	}
 
+		public function update($report_id)
+	{
+		$report = $this->report->run(post('db'), post('sql'), post('params') ?? []);
+		if(post('step') == 1)
+			$this->saveReport($report, $report_id);
+		else {
+			$keys = array_keys($report[0]);
+			$filteredKeys = array_values(array_filter($keys, function ($k) {
+				return $k != 'id';
+			}));
+			echo BaseResponse::ok("Success", $filteredKeys);
+		}
+
+	}
+
 	
 }
