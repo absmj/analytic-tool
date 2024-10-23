@@ -9,7 +9,7 @@ class Report_model extends CRUD {
 
     public function list($limit = 10) {
         return $this->db
-                ->select("r.*, 
+                ->select("r.*,
                             q.id query_id, 
                             q.sql,
                             q.db,
@@ -19,10 +19,10 @@ class Report_model extends CRUD {
                             j.date last_file,
                             fo.folder_name folder
                         ")
-                ->join("queries q", "r.query_id = q.id", "left")
-                ->join("jobs j", "j.report_id = r.id", "left")
-                ->join("crons c", "c.id = q.cron_id")
-                ->join("folders fo", "r.folder_id = fo.folder_id")
+                ->join("psd_analytic_queries q", "r.query_id = q.id", "left")
+                ->join("(select report_id, max(date) date, max(id) id from psd_analytic_jobs group by report_id) j", "j.report_id = r.id")
+                ->join("psd_analytic_crons c", "c.id = q.cron_id")
+                ->join("psd_analytic_folders fo", "r.folder_id = fo.folder_id")
                 ->where("r.is_deleted", false)
                 ->from($this->table . " r")
                 ->limit($limit)
