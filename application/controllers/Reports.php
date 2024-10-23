@@ -77,16 +77,14 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Success", $data['report']);
 	}
 
-	public function run($report_id) {
+	public function run($report_id, $isCron = false) {
 		$report = $this->report->get($report_id);
-
 		$this->report->createOrInsertOrUpdateReport($report['db'],$report['report_table'],$report['unique_field'],$report["sql"],json_decode($report["params"], 1));
 		$job = [
 			"query_id" => $report['query_id'],
 			"report_id" => $report['id'],
-			"is_cron" => false
+			"is_cron" => $isCron
 		];
-
 		$this->job->insert($job);
 		echo BaseResponse::ok("Success");
 	}
