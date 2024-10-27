@@ -37,7 +37,7 @@ class Pages extends BaseController
 			$result = $this->report->getReportData($page['report_table'], null, json_decode($page['params'] ?? '[]', 1),array_keys(json_decode($page['fields_map'] ?? '[]', 1)), $this->input->get());
 		}
 
-		$pivotting = $this->makingChart($charts, $result);
+		$pivotting = @$this->makingChart($charts, $result);
 		$rows = $pivotting[0];
 		$data['charts'] = $pivotting[1];
 		$fieldMaps = json_decode($page['fields_map'], 1);
@@ -51,10 +51,8 @@ class Pages extends BaseController
 		foreach ($rows as &$row) {
 			ksort($row);
 		}
-
-		$data['rows'] = $rows;
 		$data['page'] = $page;
-
+ 
 		$data['template'] = $page['template'];
 		if($this->input->get()) {
 			echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
@@ -177,7 +175,8 @@ class Pages extends BaseController
 			if (is_int((int)$chart['row_index']) && count($data ?? []) > 0) {
 				$slice = json_decode($chart['slice'], 1);
 				$pivot = PHPivot::create($data);
-				foreach(array_merge($slice['rows'], $slice['columns']) ?? [] as $r) {
+				// dd($slice);
+				foreach(array_merge($slice['rows'] ?? [], $slice['columns'] ?? []) ?? [] as $r) {
 					if($r['uniqueName'] == 'Measures') continue;
 
 					if(preg_match("/\..*$/mui", $r['uniqueName'])){
@@ -244,6 +243,7 @@ class Pages extends BaseController
 					$chart['options']['data']['labels'] = $apex->labels;
 				}
 				$chart['options']['type'] = $chart['chart_type'];
+				$chart['options']['total'] = $apex->totals;
 
 				// $chart['options']['xaxis']['type'] = "category";
 
@@ -264,4 +264,11 @@ class Pages extends BaseController
 		return [$rows, $charts_];
 	}
 	
+
+	public function delete($page_id) {
+		$this->load->model("Chart_model", "chart");
+		$this->chart->delete($page_id, "page_id");
+		$this->page->delete($page_id, "id");
+		echo BaseResponse::ok();
+	}
 }

@@ -28,7 +28,8 @@ class Dashboard extends BaseController
 
 			$page_id = $this->page->insert([
 				"title" => $post['title'],
-				"report_id" => $report_id
+				"report_id" => $report_id,
+				"access" => $post["access"]
 			]);
 			
 
@@ -94,29 +95,17 @@ class Dashboard extends BaseController
 		if(isPostRequest()) {
 			$post = json_decode(file_get_contents("php://input"), 1);
 			$this->load->model("Page_model", "page");
+			$this->load->model("Chart_model", "chart");
 
 			$page_id = $this->page->update($page_id, [
 				"title" => $post['title'],
+				"access" => $post["access"]
 			]);
 			
-
-			foreach($post['charts'] as &$value) {
-				$value['page_id'] = $page_id;
-			}
-			// dd($value);
 			$data = $this->chart->updateBatch("id", $post['charts']);
 			echo BaseResponse::ok("success", $data);
 			exit;
 		}
-	}
-
-
-	public function templates() {
-		echo BaseResponse::ok("Success", ["view" => $this->view("templates/index", [], true)]);
-	}
-
-	public function template($name = "simple") {
-		echo BaseResponse::ok("Success", ["view" => $this->view("templates/" . $name, [], true)]);
 	}
 
 }

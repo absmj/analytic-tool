@@ -14,15 +14,12 @@ class Report_model extends CRUD {
                             q.sql,
                             q.db,
                             q.created_at query_created, 
-                            c.job,
-                            c.title cron,
                             j.date last_file,
                             fo.folder_name folder
                         ")
-                ->join("psd_analytic_queries q", "r.query_id = q.id", "left")
-                ->join("(select report_id, max(date) date, max(id) id from psd_analytic_jobs group by report_id) j", "j.report_id = r.id")
-                ->join("psd_analytic_crons c", "c.id = q.cron_id")
-                ->join("psd_analytic_folders fo", "r.folder_id = fo.folder_id")
+                ->join("queries q", "r.query_id = q.id", "left")
+                ->join("(select report_id, max(date) date, max(id) id from jobs group by report_id) j", "j.report_id = r.id")
+                ->join("folders fo", "r.folder_id = fo.folder_id")
                 ->where("r.is_deleted", false)
                 ->from($this->table . " r")
                 ->limit($limit)
@@ -32,7 +29,7 @@ class Report_model extends CRUD {
     }
 
     public function get($id) {
-        return $this->db->select("r.*, q.sql, q.cron_id,q.db,q.params,q.unique_field,q.fields_map, f.folder_id, f.folder_name")->where('r.id', $id)
+        return $this->db->select("r.*, q.sql, q.db,q.params,q.unique_field,q.fields_map, f.folder_id, f.folder_name")->where('r.id', $id)
                         ->join("queries q", "q.id=r.query_id")
                         ->join("folders f", "f.folder_id = r.folder_id")
                         ->get($this->table . " r")->row_array();
@@ -184,9 +181,9 @@ class Report_model extends CRUD {
                                 $data[$unique]= $data[$unique];
                             }
     
-                            $setting[] = $key . " = " .$d;
+                            $setting[] = '"'.$key.'"' . " = " .$d;
                         }
-                        $update .= implode(",", $setting) . " WHERE " . $unique . " = " . $data[$unique];
+                        $update .= implode(",", $setting) . " WHERE " . $unique . " = '" . $data[$unique]."'";
                         $statements[] = $update;
                     } else {
                         $insertBatch[] = $data;

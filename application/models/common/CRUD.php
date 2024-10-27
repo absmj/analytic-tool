@@ -55,8 +55,8 @@ class CRUD extends CI_Model {
         return $this->db->affected_rows();
     }
 
-    public function delete($id) {
-        if(!$this->db->where('id', $id)->delete($this->table))
+    public function delete($id, $field) {
+        if(!$this->db->where($field, $id)->delete($this->table))
             throw new Exception(get_called_class() . " :: Silinmə zamanı xəta baş verdi", 500);
         
         return $this->db->affected_rows();

@@ -8,6 +8,7 @@ class Apex {
     public $xAxis;
     public $yAxis;
     public $total = 0;
+    public $totals = [];
     public $avarage;
 
     public function __construct($data, $type, $sorting = null, $slice = null, $labels = null, $names = [])
@@ -30,6 +31,25 @@ class Apex {
 
 
         $this->datasets = $this->generateSeries(array_slice($this->data, 1), $type, $sorting, $names);
+
+        if($type == 'card') {
+
+            foreach($data as $key => $val) {
+
+                if(is_array($val)) {
+
+                    foreach($val as $v) {
+                        
+                        if($v['_type'] == 'TYPE_VAL') {
+                            $this->totals[] = $v['_val'];
+                        }
+                    }
+                }
+            }
+
+        }
+
+
     }
 
 
@@ -90,7 +110,7 @@ class Apex {
             }
         }
 
-        $this->avarage = $this->total / count($vals);
+        if(count($vals) > 0) $this->avarage = $this->total / count($vals);
         // dd($means);
         foreach($cols as $ck => $col) {
             if($sorting) {

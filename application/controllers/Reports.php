@@ -47,29 +47,6 @@ class Reports extends BaseController
 				exit;
 			}
 		}
-
-		$this->set("vendorScripts", [
-			"vendor/codemirror/codemirror.js",
-			"vendor/codemirror/sql/sql.js",
-			"vendor/codemirror/match-brackets.js",
-			"vendor/codemirror/hint.js",
-			"vendor/codemirror/sql/hint.js",
-		])
-			->set("vendorStyles", [
-				"vendor/codemirror/codemirror.css",
-			])
-			->set("scripts", [
-				"js/steps.js"
-			])
-			->set("styles", [
-				"css/folder.css"
-			]);
-
-		$data['folders'] = $this->folder->list();
-		// dd($data['folders']);
-		$data['crons'] = $this->cron->list();
-
-		$this->page("form", $data);
 	}
 
 	public function get($report_id) {
@@ -143,20 +120,9 @@ class Reports extends BaseController
 	{
 		try {
 			if(!empty($data)) {
-				$cronJob = $this->cron->getByJob(post('cron_id'));
-				if(empty($cronJob)) {
-					$cronJob = $this->cron->insert([
-						"job" => post('cron_id'),
-						"title" => post("cron_title")
-					]);
-				} else {
-					$cronJob = $cronJob["id"];
-				}
-				
 				$query = $this->query->insert([
 					"sql" => post("sql"),
 					"db" => post("db"),
-					"cron_id" => $cronJob,
 					"params" => json_encode(post('params')),
 					"unique_field" => post("unique"),
 					"fields_map" => json_encode(post('fields'))
@@ -185,42 +151,42 @@ class Reports extends BaseController
 					"is_cron" => $isCron
 				];
 
-				if($manual) {
-					if($toFile) {
-						// File operation
-						$folder = APPPATH . "reports";
-						$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
-						$report_name = post("name")."-".$report;
-						$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
-						$header = array_keys($data[0]);
-	
-						// https://stackoverflow.com/a/2303377
-						if(!file_exists($report_folder)) 
-							mkdir($report_folder, 0777, true);
-						
-						$fp = fopen($csv, 'w');
-	
-						fputcsv($fp, $header);
-	
-						if($fp) {
-							foreach($data as $d) {
-								fputcsv($fp, $d);
-							}
-							
-							$file = $this->file->insert([
-								"name" => $report_name,
-								"location" => $csv,
-								"folder_id" => post("report_folder"),
-								"type" => "csv"
-							]);
-							$job['file_id'] = $file;
-						} else {
-							throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
+
+				if($toFile) {
+					// File operation
+					$folder = APPPATH . "reports";
+					$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
+					$report_name = post("name")."-".$report;
+					$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
+					$header = array_keys($data[0]);
+
+					// https://stackoverflow.com/a/2303377
+					if(!file_exists($report_folder)) 
+						mkdir($report_folder, 0777, true);
+					
+					$fp = fopen($csv, 'w');
+
+					fputcsv($fp, $header);
+
+					if($fp) {
+						foreach($data as $d) {
+							fputcsv($fp, $d);
 						}
+						
+						$file = $this->file->insert([
+							"name" => $report_name,
+							"location" => $csv,
+							"folder_id" => post("report_folder"),
+							"type" => "csv"
+						]);
+						$job['file_id'] = $file;
 					} else {
-						$this->report->createOrInsertOrUpdateReport(post('db'),post('report_table'),post('unique'),post("sql"),json_decode(post("params"), 1));
+						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 					}
+				} else {
+					$this->report->createOrInsertOrUpdateReport(post('db'),post('report_table'),post('unique'),post("sql"),post("params") ?? []);
 				}
+				
 
 				$this->job->insert($job);
 				echo BaseResponse::ok("Hesabat ".($base > 0 ? 'redaktə edildi' : 'yaradıldı')."!");

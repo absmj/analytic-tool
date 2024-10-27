@@ -42,11 +42,4 @@ class Folder_model extends CRUD
         
         return $this->db->affected_rows();
     }
-
-    public function delete($id) {
-        if(!$this->db->where('folder_id', $id)->delete($this->table))
-            throw new Exception(get_called_class() . " :: Silinmə zamanı xəta baş verdi", 500);
-        
-        return $this->db->affected_rows();
-    }
 }

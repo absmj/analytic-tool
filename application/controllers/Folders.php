@@ -40,13 +40,4 @@ class Folders extends BaseController {
 
         echo json_encode(array('affected_rows' => $affected_rows));
     }
-
-    // Delete a folder and its children (accessible via POST)
-    public function delete() {
-        $folder_id = $this->input->post('folder_id');
-
-        $affected_rows = $this->Folder_model->delete($folder_id);
-
-        echo json_encode(array('affected_rows' => $affected_rows));
-    }
 }
