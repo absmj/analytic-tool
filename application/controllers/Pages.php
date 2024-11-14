@@ -1,6 +1,7 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
-require_once APPPATH . "custom/BaseController.php";
+defined('BASE_PATH')           or define('BASE_PATH', '/modules/psd_analytic/');
+defined('BASE_URL_REQUEST')           or define('BASE_URL_REQUEST', '/psd_analytic/');
+require_once FCPATH . BASE_PATH .  "/custom/BaseController.php";
 
 class Pages extends BaseController
 {
@@ -9,6 +10,14 @@ class Pages extends BaseController
 	public function __construct()
 	{
 		parent::__construct();
+		autorize();
+		if(ENVIRONMENT != 'development') {
+			$username = strtolower($_SESSION['user_login']);
+			if(!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'zahraag'])) {
+				die("Sizin icazəniz yoxdur");
+			}
+		}
+		
 		$this->load->model("Page_model", "page");
 		$this->title = "Səhifələr";
 	}
@@ -33,60 +42,124 @@ class Pages extends BaseController
 		$data['page'] = $page;
 
 		// dd($page);
-		if($page['report_table']) {
-			$result = $this->report->getReportData($page['report_table'], null, json_decode($page['params'] ?? '[]', 1),array_keys(json_decode($page['fields_map'] ?? '[]', 1)), $this->input->get());
+		// if($page['report_table']) {
+		// 	$result = $this->report->getReportData($page['report_table'], null, json_decode($page['params']  != 'null' ? $page['params'] : '[]', 1),array_keys(json_decode($page['fields_map'] != 'null' ? $page['fields_map'] : '[]', 1)), $this->input->get());
+		// }
+		$params = json_decode($report['params'] ?? '[]', 1) ?? [];
+		$filter = $this->input->get();
+
+		if($page['location']) {
+			// if(!empty($_SESSION['report_file']) && file_exists($_SESSION['report_file']) && !empty($filter)) {
+			// 	$csvFile = fopen($_SESSION['report_file'], "r");
+			// 	$result = fread($csvFile, filesize($_SESSION['report_file']));
+			// } else {
+				$result = $this->report->getCsvFile($page['location']);
+			// }
+			$result = csv2json($result);
 		}
 
-		$pivotting = @$this->makingChart($charts, $result);
-		$rows = $pivotting[0];
-		$data['charts'] = $pivotting[1];
+
+
+		// if(empty($filter)) {
+		// 	if(empty($_SESSION['report_file'])) {
+		// 		$tmpfile = tempnam(sys_get_temp_dir(), "report-dashboard");
+		// 		$handle = fopen($tmpfile, "w");
+		// 		$header = array_keys($result[0]);
+		// 		fputcsv($handle, $header);
+		// 		foreach($result as $d) fputcsv($handle, $d);
+		// 		fclose($handle);
+		// 		$_SESSION['report_file'] = $tmpfile;
+		// 	} else {
+		// 		if(file_exists($_SESSION['report_file'])) unlink($_SESSION['report_file']);
+		// 		$_SESSION['report_file'] = null;
+		// 	}
+		// }
+
+
+			// if(empty($f)) continue;
+			$resultFiltered = [];
+			$filter = array_filter($filter, function($f) { return !empty($f); });
+			$params = array_filter($params, function($f) { return !empty($f); });
+			if(!empty($filter) || !empty($params)) {
+				foreach($result as $index => $item) {
+					foreach(array_merge($filter ?? [], $params ?? []) as $key => $val) {
+						if(in_array($item[$key], explode(",", $val))) {
+							$resultFiltered[] = $item;
+						}
+					}
+				}
+			} else {
+				$resultFiltered = $result;
+			}
+
+
+		
+		// foreach($params ?? [] as $key => $f) {
+		// 	if(empty($f)) continue;
+		// 	$result = array_filter($result, function($item) use ($f, $key) {
+		// 		return in_array($item[$key], explode(",", $f));
+		// 	});
+		// }
 		$fieldMaps = json_decode($page['fields_map'], 1);
-		$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
-		$data['fieldMaps'] = array_flip($fieldMaps);
-		$data['filters'] = $filters;
-		echo BaseResponse::ok("Success", $data);
-		exit;
-		// dd($charts_[0]);
-		ksort($rows);
-		foreach ($rows as &$row) {
-			ksort($row);
+
+		$headers = array_keys($result[0]);
+
+		foreach($headers as $header) {
+			if(!isset($fieldMaps[$header])) continue;
+			$filters[$fieldMaps[$header]] = array_values(array_unique(array_map(function($elem) use ($header) {return $elem[$header];}, $result)));
 		}
+
+		// $filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
+		$data['fieldMaps'] = array_flip($fieldMaps ?? []);
+		$data['filters'] = $filters;
+		// echo BaseResponse::ok("Success", $data);
+		// exit;
+		// dd($charts_[0]);
+		// ksort($rows);
+		// foreach ($rows as &$row) {
+		// 	ksort($row);
+		// }
 		$data['page'] = $page;
  
 		$data['template'] = $page['template'];
-		if($this->input->get()) {
-			echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
-			exit;
-		} else {
-			$fieldMaps = json_decode($page['fields_map'], 1);
-			$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
-			$data['fieldMaps'] = array_flip($fieldMaps);
-			$data['filters'] = $filters;
-			$this->set("styles", [
-				"css/folder.css"
-			])
-				->set("vendorStyles", [
-					"vendor/pivottable/pivot.css",
-					"vendor/datatables/datatables.css"
-				])
-				->set("vendorScripts", [
-					"vendor/datatables/datatables.min.js",
-					"js/functions.js",
-					"js/mock-data.js",
-					"js/template.js",
-					"vendor/pivottable/pivottable.js"
-				])
-				->set("vendorScripts", [
-					"js/functions.js",
-					"js/mock-data.js"
-				])
-				->set("scripts", [
-					"js/chart-visual.js",
-				]);
-			// dd($data);
-			echo BaseResponse::ok("Success", $data);
-			// $this->page("dashboards/templates/index", $data, false);
-		}
+
+		$pivotting = @$this->makingChart($charts, $resultFiltered);
+		$data['charts'] = $pivotting[1];
+		echo BaseResponse::ok("Success", $data);
+		exit;
+		// if($this->input->get()) {
+		// 	echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
+		// 	exit;
+		// } else {
+		// 	$fieldMaps = json_decode($page['fields_map'], 1);
+		// 	$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
+		// 	$data['fieldMaps'] = array_flip($fieldMaps);
+		// 	$data['filters'] = $filters;
+		// 	$this->set("styles", [
+		// 		"css/folder.css"
+		// 	])
+		// 		->set("vendorStyles", [
+		// 			"vendor/pivottable/pivot.css",
+		// 			"vendor/datatables/datatables.css"
+		// 		])
+		// 		->set("vendorScripts", [
+		// 			"vendor/datatables/datatables.min.js",
+		// 			"js/functions.js",
+		// 			"js/mock-data.js",
+		// 			"js/template.js",
+		// 			"vendor/pivottable/pivottable.js"
+		// 		])
+		// 		->set("vendorScripts", [
+		// 			"js/functions.js",
+		// 			"js/mock-data.js"
+		// 		])
+		// 		->set("scripts", [
+		// 			"js/chart-visual.js",
+		// 		]);
+		// 	// dd($data);
+		// 	echo BaseResponse::ok("Success", $data);
+		// 	// $this->page("dashboards/templates/index", $data, false);
+		// }
 
 
 
@@ -169,52 +242,54 @@ class Pages extends BaseController
 	private function makingChart($charts, $data) {
 		$charts_ = []; $rows = [];
 		foreach ($charts as $chart) {
+			// if($chart["id"] != '89') continue;
 			$day = null; $month = null; $year = null;
 			$chart['row_index'] = (int)$chart['row_index'];
 			// var_dump($chart['row_index']);
 			if (is_int((int)$chart['row_index']) && count($data ?? []) > 0) {
 				$slice = json_decode($chart['slice'], 1);
-				$pivot = PHPivot::create($data);
 				// dd($slice);
+
 				foreach(array_merge($slice['rows'] ?? [], $slice['columns'] ?? []) ?? [] as $r) {
 					if($r['uniqueName'] == 'Measures') continue;
 
-					if(preg_match("/\..*$/mui", $r['uniqueName'])){
-						$part = preg_replace("/(.*?)(\..*)$/mui", "$1", $r['uniqueName']);
-						foreach($data as &$d) {
-							if(preg_match("/\.Day$/mui", $r['uniqueName'])){
-								$day = preg_replace("/(.*\/)(\d{1,2})(\/.*)/mui", "$2", $d[$part]);
-								$d[$r['uniqueName']] = $day;
-							} else if(preg_match("/\.Month$/mui", $r['uniqueName'])){
-								$month = preg_replace("/(\d{1,2})(.*)(\/.*)/mui", "$1", $d[$part]);
-								$d[$r['uniqueName']] = $month;
-							}  else if(preg_match("/\.Year$/mui", $r['uniqueName'])){
-								$year = preg_replace("/(.*)(\/.*\/)(\d{1,2})/mui", "$3", $d[$part]);
-								$d[$r['uniqueName']] = $year;
-							}
-						}
-					}
+					// if(preg_match("/\..*$/mui", $r['uniqueName'])){
+					// 	$part = preg_replace("/(.*?)(\..*)$/mui", "$1", $r['uniqueName']);
+					// 	foreach($data as &$d) {
+					// 		if(preg_match("/\.Day$/mui", $r['uniqueName'])){
+					// 			$day = preg_replace("/(.*\/)(\d{1,2})(\/.*)/mui", "$2", $d[$part]);
+					// 			$d[$r['uniqueName']] = $day;
+					// 		} else if(preg_match("/\.Month$/mui", $r['uniqueName'])){
+					// 			$month = preg_replace("/(\d{1,2})(.*)(\/.*)/mui", "$1", $d[$part]);
+					// 			$d[$r['uniqueName']] = $month;
+					// 		}  else if(preg_match("/\.Year$/mui", $r['uniqueName'])){
+					// 			$year = preg_replace("/(.*)(\/.*\/)(\d{1,2})/mui", "$3", $d[$part]);
+					// 			$d[$r['uniqueName']] = $year;
+					// 		}
+					// 	}
+					// }
 				}
-
+				
 				$pivot = PHPivot::create($data);
+				// dd(($pivot));
 
-				foreach($slice['rows'] as $r) {
+				foreach($slice['rows'] ?? [] as $r) {
 					$pivot->setPivotRowFields($r['uniqueName']);
 				}
 				foreach($slice['columns'] ?? [] as $r) {
 					if($r['uniqueName'] == 'Measures') continue;
 
-
 					$pivot->setPivotColumnFields($r['uniqueName']);
 				}
 
 				foreach($slice['measures'] ?? [] as $r) {
-					// $pivot->setPivotColumnFields($r['uniqueName']);
 					$pivot->setPivotValueFields($r['uniqueName'], $r['aggregation'] == 'count' ? PHPivot::PIVOT_VALUE_COUNT : PHPivot::PIVOT_VALUE_SUM);
 				}
-	
-				foreach($slice['filters'] ?? [] as $r) {
-					$pivot->addFilter($r['uniqueName'], $r['filter']['members']);
+
+				foreach($slice['reportFilters'] ?? [] as $r) {
+					foreach($r['filter']['members'] ?? [] as $member) {
+						$pivot->addFilter($r['uniqueName'], explode(".", $member)[1] ?? '');
+					}
 				}
 
 				$sorting = null;
@@ -228,8 +303,6 @@ class Pages extends BaseController
 					}
 				}
 				$pivotData = $pivot->generate()->toArray();
-
-				// dd($pivotData);
 				$chart['options'] = json_decode($chart['chart_options'], 1);
 				// dd($chart['options']['labels']);
 				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
@@ -243,17 +316,25 @@ class Pages extends BaseController
 					$chart['options']['data']['labels'] = $apex->labels;
 				}
 				$chart['options']['type'] = $chart['chart_type'];
-				$chart['options']['total'] = $apex->totals;
+				$chart['options']['data']['total'] = $apex->totals;
 
 				// $chart['options']['xaxis']['type'] = "category";
 
-				// preg_match_all("/\{\{(.*?)\}\}/u", $chart['options']['title']['text'] ?? '', $matches);
+				preg_match_all("/\{\{(.*?)\}\}/u", @$chart['options']['options']['plugins']['title']['text'], $matches);
 
-				// foreach($matches[1] as $match) {
-				// 	if(!is_null($apex->{$match})) {
-				// 		$chart['options']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['title']['text']);
-				// 	}
-				// }
+				foreach($matches[1] as $match) {
+					if(!is_null($apex->{$match})) {
+						$chart['options']['options']['plugins']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['title']['text']);
+					}
+				}
+
+				preg_match_all("/\{\{(.*?)\}\}/u", @$chart['options']['options']['plugins']['subtitle']['text'], $matches);
+
+				foreach($matches[1] as $match) {
+					if(!is_null($apex->{$match})) {
+						$chart['options']['options']['plugins']['subtitle']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['subtitle']['text']);
+					}
+				}
 
 				$rows[$chart['row_index']][] = $chart;
 				$charts_[] = $chart;
