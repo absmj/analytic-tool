@@ -46,13 +46,15 @@ class CRUD extends CI_Model {
     public function updateBatch($id, $data) {
         $statements = [];
         foreach($data as $key => $value) {
+            // dd($id);
             if(!isset($value[$id])) continue;
-            $statements[] = $this->db->where($id, $value[$id])->get_compiled_update($this->table, array_diff_key($value, array_flip($id)));
+            $statements[] = $this->db->set(array_diff_key($value, array_flip([$id])))->where($id, $value[$id])->get_compiled_update($this->table);
         }
+        // dd($data);
         
         if(count($statements) > 0) $this->db->query(implode(";", $statements));
         
-        return $this->db->affected_rows();
+        return count($statements);
     }
 
     public function delete($id, $field) {
