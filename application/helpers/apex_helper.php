@@ -17,12 +17,6 @@ class Apex {
         // dd($data);
         if($labels == null || empty($labels)) $this->labels = array_values(array_filter(array_keys($data), function($k) { return $k != '_type'; }));
         else $this->labels = $labels;
-
-        foreach($this->labels as &$label) {
-            if(empty($label)) {
-                $label = "Bilinməyən";
-            }
-        }
         $labels = [];
         if(is_array($slice)) {
             // dd(array_merge($slice['rows'], $slice['columns']));
@@ -31,25 +25,16 @@ class Apex {
 
 
         $this->datasets = $this->generateSeries(array_slice($this->data, 1), $type, $sorting, $names);
-
+        $total = [];
         if($type == 'card') {
-
-            foreach($data as $key => $val) {
-
-                if(is_array($val)) {
-
-                    foreach($val as $v) {
-                        
-                        if($v['_type'] == 'TYPE_VAL') {
-                            $this->totals[] = $v['_val'];
-                        }
-                    }
+            array_walk_recursive($data, function($val, $key) use(&$total) {
+                if(is_numeric($val)) {
+                    $total[] = $val;
                 }
-            }
-
+            });
+            $this->totals = $total;
         }
-
-
+        
     }
 
 
@@ -111,6 +96,7 @@ class Apex {
         }
 
         if(count($vals) > 0) $this->avarage = $this->total / count($vals);
+
         // dd($means);
         foreach($cols as $ck => $col) {
             if($sorting) {
@@ -147,13 +133,31 @@ class Apex {
         }
 
         return $series;
+        // switch($type) {
+        //     case "pie":
+        //     case "donut":
+        //         $data_ = [];
+        //         array_walk_recursive($series, function($d, $v) use(&$data_) {
+        //             if(is_numeric($d)) {
+        //                 array_push($data_, (int)$d);
+        //             }
+        //         });
 
-
+        //         return $data_;
+        //     default:
+        //         return $series;
+        // }
         // dd($series);
 
     }
     
     public function chart() {
 
+    }
+
+    public function __get($name)
+    {
+        if(preg_match("/total/i", $name))
+            return $this->total;
     }
 }
