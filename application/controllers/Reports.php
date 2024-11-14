@@ -1,9 +1,12 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
-require_once APPPATH . "custom/BaseController.php";
+defined('BASE_PATH')           or define('BASE_PATH', '/modules/psd_analytic/');
+defined('BASE_URL_REQUEST')           or define('BASE_URL_REQUEST', '/psd_analytic/');
+require_once FCPATH . BASE_PATH .  "/custom/BaseController.php";
 
 class Reports extends BaseController
 {
+	protected $view = "reports";
+
 	public function __construct()
 	{
 		parent::__construct();
@@ -14,15 +17,21 @@ class Reports extends BaseController
 		$this->load->model("File_model", "file");
 		$this->load->model("Cron_model", "cron");
 		$this->load->model("Job_model", "job");
-		$this->load->helper(["pivot_helper", "apex"]);
+		$this->load->helper("pivot");
+		autorize();
+		if(ENVIRONMENT != 'development') {
+			$username = strtolower($_SESSION['user_login']);
+			if(!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'zahraag'])) {
+				die("Sizin icazəniz yoxdur");
+			}
+		}
 	}
 
 	public function index()
 	{
 		$data['reports'] = $this->report->list();
-
-		echo BaseResponse::ok("Success", $data['reports']);
 		// $this->page("index", $data);
+		echo BaseResponse::ok("Success", $data['reports']);
 	}
 
 	public function create()
@@ -51,15 +60,33 @@ class Reports extends BaseController
 			}
 		}
 	}
+	
 
-	public function get($report_id) {
+	public function get($report_id)
+	{
 		$data['report'] = $this->report->get($report_id);
-		echo BaseResponse::ok("Success", $data['report']);
+		echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $data['report']);
 	}
 
 	public function run($report_id, $isCron = false) {
 		$report = $this->report->get($report_id);
-		$this->report->createOrInsertOrUpdateReport($report['db'],$report['report_table'],$report['unique_field'],$report["sql"],json_decode($report["params"], 1));
+
+		$reportData = $this->report->run($report['db'], $report['sql'], $report['params'] != 'null' ? json_decode($report['params'], 1) : []);
+
+		$csv = tempnam(sys_get_temp_dir(), 'csv');
+		$header = array_keys($reportData[0]);
+		$fp = fopen($csv, 'w');
+		fputcsv($fp, $header);
+
+		if ($csv) {
+			foreach($reportData as $d) fputcsv($fp, $d);
+			$location = $this->report->upload($csv);
+
+			$this->file->update($report['file_id'], ['name' => $location['name'], 'location' => $location['uniqueFileId']]);
+		}
+
+		$this->report->deleteFile($report['file']);
+
 		$job = [
 			"query_id" => $report['query_id'],
 			"report_id" => $report['id'],
@@ -69,63 +96,57 @@ class Reports extends BaseController
 		echo BaseResponse::ok("Success");
 	}
 
-	public function edit($report_id) {
-		$data['isEdit'] = true;
-		if (isPostRequest()) {
+
+	public function delete($report_id)
+	{
+		$reportData = $this->report->get($report_id);
+		if(isset($reportData['file']) || (isset($reportData['file']) && empty($reportData['file']))) {
 			try {
-				$data = $this->report->run(post('database'), post('sql'));
-				if(post('run_or_save') == 'on' && post("step") == 0) {
-					if(empty($data)) {
-						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
-					} else {
-						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $data);
-					}
-				} else {
-					$this->saveReport($data, $report_id);
-				}
-			} catch(Exception $e) {
-				echo BaseResponse::error("Hesabatın icra edilməsi zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
-			} finally {
-				exit;
+				$this->report->deleteFile($reportData['file']);
+			} catch(Error $e) {
+
 			}
+
 		}
-		$this->set("vendorScripts", [
-			"vendor/codemirror/codemirror.js",
-			"vendor/codemirror/sql/sql.js",
-			"vendor/codemirror/match-brackets.js",
-			"vendor/codemirror/hint.js",
-			"vendor/codemirror/sql/hint.js",
-		])
-			->set("vendorStyles", [
-				"vendor/codemirror/codemirror.css",
-			])
-			->set("scripts", [
-				"js/steps.js"
-			])
-			->set("styles", [
-				"css/folder.css"
-			]);
-		$data['report'] = $this->report->get($report_id);
-		$data['folders'] = $this->folder->list();
 
-		$data['crons'] = $this->cron->list();
-		// dd($data);
-		echo BaseResponse::ok("Success", $data['report']);
-		// $this->page("form", $data);
-	}
-
-	public function delete($report_id) {
 		$data = $this->report->update($report_id, ['is_deleted' => true]);
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
 
-	private function saveReport($data, $base = null, $isCron = false, $toFile = false, $manual = false)
+	public function update($report_id)
+	{
+		$report = $this->report->run(post('db'), post('sql'), post('params') ?? []);
+		$reportData = $this->report->get($report_id);
+		if(post('step') == 1)
+			$this->saveReport($report, $report_id, false, true, $reportData);
+		else {
+			$keys = array_keys($report[0]);
+			$filteredKeys = array_values(array_filter($keys, function ($k) {
+				return $k != 'id';
+			}));
+			echo BaseResponse::ok("Success", $filteredKeys);
+		}
+
+	}
+
+	private function saveReport($data, $base = null, $isCron = false, $toFile = false, $reportData = null)
 	{
 		try {
-			if(!empty($data)) {
+			if (!empty($data)) {
+				// $cronJob = $this->cron->getByJob(post('cron_id'));
+				// if (empty($cronJob)) {
+				// 	$cronJob = $this->cron->insert([
+				// 		"job" => post('cron_id'),
+				// 		"title" => post("cron_title")
+				// 	]);
+				// } else {
+				// 	$cronJob = $cronJob["id"];
+				// }
+
 				$query = $this->query->insert([
 					"sql" => post("sql"),
 					"db" => post("db"),
+					// "cron_id" => $cronJob,
 					"params" => json_encode(post('params')),
 					"unique_field" => post("unique"),
 					"fields_map" => json_encode(post('fields'))
@@ -138,15 +159,21 @@ class Reports extends BaseController
 					"base" => $base ?? 0,
 				];
 
-				if(!$toFile){
+				if (!$toFile) {
 					$reportInsert['report_table'] = camelToSnake(post('report_table'));
 				}
 
-				$report = $this->report->insert($reportInsert);
-
-				if($base > 0) {
-					$this->report->update($base, ['is_deleted' => true]);
+				if($base) {
+					$this->report->update($base, $reportInsert);
+					$report = $base;
 				}
+				else {
+					$report = $this->report->insert($reportInsert);
+				}
+
+				// if ($base > 0) {
+				// 	$this->report->update($base, ['is_deleted' => true]);
+				// }
 
 				$job = [
 					"query_id" => $query,
@@ -154,84 +181,75 @@ class Reports extends BaseController
 					"is_cron" => $isCron
 				];
 
+				if ($toFile) {
+					$csv = tempnam(sys_get_temp_dir(), 'csv');
 
-				if($toFile) {
 					// File operation
-					$folder = APPPATH . "reports";
-					$report_folder = $folder . DIRECTORY_SEPARATOR . preg_replace("/\s*>\s*/", DIRECTORY_SEPARATOR, post('folder_name'));
-					$report_name = post("name")."-".$report;
-					$csv = $report_folder . DIRECTORY_SEPARATOR . uniqid() .  ".csv";
+					if(isset($reportData['file']) || (isset($reportData['file']) && empty($reportData['file']))) {
+						try {
+							$this->report->deleteFile($reportData['file']);
+						} catch(Error $e) {
+
+						}
+
+					}
 					$header = array_keys($data[0]);
-
-					// https://stackoverflow.com/a/2303377
-					if(!file_exists($report_folder)) 
-						mkdir($report_folder, 0777, true);
-					
 					$fp = fopen($csv, 'w');
-
 					fputcsv($fp, $header);
 
-					if($fp) {
-						foreach($data as $d) {
-							fputcsv($fp, $d);
+					if ($csv) {
+						foreach($data as $d) fputcsv($fp, $d);
+						$location = $this->report->upload($csv);
+						fclose($fp);
+						unlink($csv);
+						if(isset($location['uniqueFileId'])) {
+							if(!isset($reportData['file']) || (isset($reportData['file']) && empty($reportData['file']))) {
+								$file = $this->file->insert([
+									"name" => $location['name'],
+									"location" => $location['uniqueFileId'],
+									"folder_id" => post("report_folder"),
+									"type" => "csv"
+								]);
+								$job['file_id'] = $file;
+							} else {
+								$this->file->update($reportData['file_id'], ['name' => $location['name'], 'location' => $location['uniqueFileId']]);
+								$job['file_id'] = $reportData['file_id'];
+							}
 						}
-						
-						$file = $this->file->insert([
-							"name" => $report_name,
-							"location" => $csv,
-							"folder_id" => post("report_folder"),
-							"type" => "csv"
-						]);
-						$job['file_id'] = $file;
+
 					} else {
 						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 					}
-				} else {
-					$this->report->createOrInsertOrUpdateReport(post('db'),post('report_table'),post('unique'),post("sql"),post("params") ?? []);
 				}
-				
+				// else {
+				// 	$this->report->createOrInsertOrUpdateReport(post('db'), post('report_table'), post('unique'), post("sql"));
+				// }
 
 				$this->job->insert($job);
-				echo BaseResponse::ok("Hesabat ".($base > 0 ? 'redaktə edildi' : 'yaradıldı')."!");
+				echo BaseResponse::ok("Hesabat " . ($base > 0 ? 'redaktə edildi' : 'yaradıldı') . "!");
 			} else {
 				throw new Exception("Nəticə boşdur", 400);
 			}
-		}
-		catch (Exception $e) {
+		} catch (Exception $e) {
 			echo BaseResponse::error("Hesabatın yaradılması zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
 		}
 	}
 
-	public function restore($id, $old) {
+	public function restore($id, $old)
+	{
 		$restore = $this->report->getById($old);
 		$this->report->update($id, ["is_deleted" => true]);
 		$report = $this->report->insert([
 			"name" => $restore["name"],
 			"query_id" => $restore['query'],
 			"folder_id" => $restore['folder_id'],
-			"base" => $id 
+			"base" => $id
 		]);
 		echo BaseResponse::ok("Success", $report);
 	}
 
-	public function db_list() {
-		echo BaseResponse::ok("Successfull", dblist());
-	}
-
-		public function update($report_id)
+	public function db_list()
 	{
-		$report = $this->report->run(post('db'), post('sql'), post('params') ?? []);
-		if(post('step') == 1)
-			$this->saveReport($report, $report_id);
-		else {
-			$keys = array_keys($report[0]);
-			$filteredKeys = array_values(array_filter($keys, function ($k) {
-				return $k != 'id';
-			}));
-			echo BaseResponse::ok("Success", $filteredKeys);
-		}
-
+		echo BaseResponse::ok("Success", dblist());
 	}
-
-	
 }
