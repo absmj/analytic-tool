@@ -29,19 +29,22 @@ class Reports extends BaseController
 	{
 		if (isPostRequest()) {
 			try {
-				$data = $this->report->run(post('db'), post('sql'), post('params'));
-				if(post("step") == 0) {
-					if(empty($data)) {
+				$data = $this->report->run(post('db'), post('sql'), post('params') ?? []);
+
+				if (post("step") == 0) {
+					if (empty($data)) {
 						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
 					} else {
 						$keys = array_keys($data[0]);
-						$filteredKeys = array_values(array_filter($keys, function($k){ return $k != 'id'; }));
+						$filteredKeys = array_values(array_filter($keys, function ($k) {
+							return $k != 'id';
+						}));
 						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $filteredKeys);
 					}
 				} else {
-					$this->saveReport($data);
+					$this->saveReport($data, null, false, true);
 				}
-			} catch(Exception $e) {
+			} catch (Exception $e) {
 				echo BaseResponse::error("Hesabatın icra edilməsi zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
 			} finally {
 				exit;
