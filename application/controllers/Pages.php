@@ -10,13 +10,7 @@ class Pages extends BaseController
 	public function __construct()
 	{
 		parent::__construct();
-		autorize();
-		if(ENVIRONMENT != 'development') {
-			$username = strtolower($_SESSION['user_login']);
-			if(!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'zahraag'])) {
-				die("Sizin icazəniz yoxdur");
-			}
-		}
+		// autorize();
 		
 		$this->load->model("Page_model", "page");
 		$this->title = "Səhifələr";
@@ -24,6 +18,12 @@ class Pages extends BaseController
 
 	public function index()
 	{
+		if(ENVIRONMENT != 'development') {
+			$username = strtolower($_SESSION['user_login']);
+			if(!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'veliis', 'zahraag'])) {
+				die("Sizin icazəniz yoxdur");
+			}
+		}
 		$data['pages'] = $this->page->list();
 		echo BaseResponse::ok("Success", $data['pages']);
 		exit;
@@ -41,65 +41,30 @@ class Pages extends BaseController
 
 		$data['page'] = $page;
 
-		// dd($page);
-		// if($page['report_table']) {
-		// 	$result = $this->report->getReportData($page['report_table'], null, json_decode($page['params']  != 'null' ? $page['params'] : '[]', 1),array_keys(json_decode($page['fields_map'] != 'null' ? $page['fields_map'] : '[]', 1)), $this->input->get());
-		// }
 		$params = json_decode($report['params'] ?? '[]', 1) ?? [];
 		$filter = $this->input->get();
 
 		if($page['location']) {
-			// if(!empty($_SESSION['report_file']) && file_exists($_SESSION['report_file']) && !empty($filter)) {
-			// 	$csvFile = fopen($_SESSION['report_file'], "r");
-			// 	$result = fread($csvFile, filesize($_SESSION['report_file']));
-			// } else {
-				$result = $this->report->getCsvFile($page['location']);
-			// }
+			$result = $this->report->getCsvFile($page['location']);
 			$result = csv2json($result);
 		}
 
 
-
-		// if(empty($filter)) {
-		// 	if(empty($_SESSION['report_file'])) {
-		// 		$tmpfile = tempnam(sys_get_temp_dir(), "report-dashboard");
-		// 		$handle = fopen($tmpfile, "w");
-		// 		$header = array_keys($result[0]);
-		// 		fputcsv($handle, $header);
-		// 		foreach($result as $d) fputcsv($handle, $d);
-		// 		fclose($handle);
-		// 		$_SESSION['report_file'] = $tmpfile;
-		// 	} else {
-		// 		if(file_exists($_SESSION['report_file'])) unlink($_SESSION['report_file']);
-		// 		$_SESSION['report_file'] = null;
-		// 	}
-		// }
-
-
-			// if(empty($f)) continue;
-			$resultFiltered = [];
-			$filter = array_filter($filter, function($f) { return !empty($f); });
-			$params = array_filter($params, function($f) { return !empty($f); });
-			if(!empty($filter) || !empty($params)) {
-				foreach($result as $index => $item) {
-					foreach(array_merge($filter ?? [], $params ?? []) as $key => $val) {
-						if(in_array($item[$key], explode(",", $val))) {
-							$resultFiltered[] = $item;
-						}
+		$resultFiltered = [];
+		$filter = array_filter($filter, function($f) { return !empty($f); });
+		$params = array_filter($params, function($f) { return !empty($f); });
+		if(!empty($filter) || !empty($params)) {
+			foreach($result as $index => $item) {
+				foreach(array_merge($filter ?? [], $params ?? []) as $key => $val) {
+					if(in_array($item[$key], explode(",", $val))) {
+						$resultFiltered[] = $item;
 					}
 				}
-			} else {
-				$resultFiltered = $result;
 			}
+		} else {
+			$resultFiltered = $result;
+		}
 
-
-		
-		// foreach($params ?? [] as $key => $f) {
-		// 	if(empty($f)) continue;
-		// 	$result = array_filter($result, function($item) use ($f, $key) {
-		// 		return in_array($item[$key], explode(",", $f));
-		// 	});
-		// }
 		$fieldMaps = json_decode($page['fields_map'], 1);
 
 		$headers = array_keys($result[0]);
@@ -109,16 +74,8 @@ class Pages extends BaseController
 			$filters[$fieldMaps[$header]] = array_values(array_unique(array_map(function($elem) use ($header) {return $elem[$header];}, $result)));
 		}
 
-		// $filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
 		$data['fieldMaps'] = array_flip($fieldMaps ?? []);
 		$data['filters'] = $filters;
-		// echo BaseResponse::ok("Success", $data);
-		// exit;
-		// dd($charts_[0]);
-		// ksort($rows);
-		// foreach ($rows as &$row) {
-		// 	ksort($row);
-		// }
 		$data['page'] = $page;
  
 		$data['template'] = $page['template'];
@@ -127,46 +84,47 @@ class Pages extends BaseController
 		$data['charts'] = $pivotting[1];
 		echo BaseResponse::ok("Success", $data);
 		exit;
-		// if($this->input->get()) {
-		// 	echo BaseResponse::ok("Success", ["view" => $this->load->view("pages/dashboards/templates/".$data['template'], $data, true)]);
-		// 	exit;
-		// } else {
-		// 	$fieldMaps = json_decode($page['fields_map'], 1);
-		// 	$filters = $this->report->getFieldDistinctValues($page['report_table'], $fieldMaps, $page['unique_field']);
-		// 	$data['fieldMaps'] = array_flip($fieldMaps);
-		// 	$data['filters'] = $filters;
-		// 	$this->set("styles", [
-		// 		"css/folder.css"
-		// 	])
-		// 		->set("vendorStyles", [
-		// 			"vendor/pivottable/pivot.css",
-		// 			"vendor/datatables/datatables.css"
-		// 		])
-		// 		->set("vendorScripts", [
-		// 			"vendor/datatables/datatables.min.js",
-		// 			"js/functions.js",
-		// 			"js/mock-data.js",
-		// 			"js/template.js",
-		// 			"vendor/pivottable/pivottable.js"
-		// 		])
-		// 		->set("vendorScripts", [
-		// 			"js/functions.js",
-		// 			"js/mock-data.js"
-		// 		])
-		// 		->set("scripts", [
-		// 			"js/chart-visual.js",
-		// 		]);
-		// 	// dd($data);
-		// 	echo BaseResponse::ok("Success", $data);
-		// 	// $this->page("dashboards/templates/index", $data, false);
-		// }
+	}
+
+	public function cross_filter($pageId) {
+		if(isPostRequest()) {
+			$this->load->model("Chart_model", "chart");
+			$this->load->model("Report_model", "report");
+			$this->load->helper(["pivot", "apex"]);
+			$post = json_decode(file_get_contents("php://input"), 1);
+			$file = $post['file'];
+			$requestedLabelId = $post['requestedLabelId'];
+			$filter = array_filter($post['cross'], function($f) { return !empty($f); });
+			$charts = $this->chart->findByPageId($pageId);
+			$resultFiltered = [];
+			$result = $this->report->getCsvFile($file);
+			$result = csv2json($result);
+			// dd($filter);
+			if(!empty($filter)) {
+				foreach($result as $index => $item) {
+					foreach($filter as $key => $val) {
+						if(!in_array($item[$key], $val)) {
+							$resultFiltered[] = $item;
+						}
+					}
+				}
+			} else $resultFiltered = $result;
 
 
+			$pivotting = @$this->makingChart($charts, $resultFiltered);
+			$result = [];
+			
+			foreach($pivotting[1] as &$chart) {
+				foreach($filter as $f) {
+					foreach($requestedLabelId as $index => $label) {
+						$chart['options']['data']['datasets'][$label + 1] = ['name' => $f[$index], "label" => $f[$index], "hidden" => true, "data" => []];
+					}
+				}
+			}
 
-		// dd($data['charts']);
-		// dd($data['rows']);
-
-		
+			echo BaseResponse::ok("Success", $pivotting[1]);
+			exit;
+		}
 	}
 
 	public function create($report_id)
@@ -240,7 +198,7 @@ class Pages extends BaseController
 	}
 
 	private function makingChart($charts, $data) {
-		$charts_ = []; $rows = [];
+		$charts_ = []; $rows = []; $datasets = [];
 		foreach ($charts as $chart) {
 			// if($chart["id"] != '89') continue;
 			$day = null; $month = null; $year = null;
@@ -335,6 +293,7 @@ class Pages extends BaseController
 						$chart['options']['options']['plugins']['subtitle']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['subtitle']['text']);
 					}
 				}
+				$datasets[] = $chart['options']['data']['datasets'];
 
 				$rows[$chart['row_index']][] = $chart;
 				$charts_[] = $chart;
@@ -342,7 +301,7 @@ class Pages extends BaseController
 
 		}
 		// dd($charts_);
-		return [$rows, $charts_];
+		return [$datasets, $charts_];
 	}
 	
 
