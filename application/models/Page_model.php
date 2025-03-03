@@ -7,7 +7,7 @@ class Page_model extends CRUD {
 
     public function list() {
         return $this->db->select("p.*, r.name report_name")->from($this->table . " p")
-                            ->join("psd_analytic_reports r", "r.id = report_id")
+                            ->join("reports r", "r.id = report_id")
                             ->order_by("p.id", "desc")
                             ->get()
                             ->result_array();

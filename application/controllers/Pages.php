@@ -1,7 +1,5 @@
 <?php
-defined('BASE_PATH')           or define('BASE_PATH', '/modules/psd_analytic/');
-defined('BASE_URL_REQUEST')           or define('BASE_URL_REQUEST', '/psd_analytic/');
-require_once FCPATH . BASE_PATH .  "/custom/BaseController.php";
+require_once APPPATH . "custom/BaseController.php";
 
 class Pages extends BaseController
 {
@@ -11,22 +9,22 @@ class Pages extends BaseController
 	{
 		parent::__construct();
 		// autorize();
-		
+
 		$this->load->model("Page_model", "page");
 		$this->title = "Səhifələr";
 	}
 
 	public function index()
 	{
-		if(ENVIRONMENT != 'development') {
+		if (ENVIRONMENT != 'development') {
 			$username = strtolower($_SESSION['user_login']);
-			if(!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'veliis', 'zahraag'])) {
+			if (!in_array($username, ['khanalid', 'shahriyara', 'alasgara', 'abbasm', 'veliis', 'zahraag'])) {
 				die("Sizin icazəniz yoxdur");
 			}
 		}
 		$data['pages'] = $this->page->list();
-		echo BaseResponse::ok("Success", $data['pages']);
-		exit;
+		// echo BaseResponse::ok("Success", $data['pages']);
+		// exit;
 		$this->page("index", $data);
 	}
 
@@ -44,19 +42,23 @@ class Pages extends BaseController
 		$params = json_decode($report['params'] ?? '[]', 1) ?? [];
 		$filter = $this->input->get();
 
-		if($page['location']) {
+		if ($page['location']) {
 			$result = $this->report->getCsvFile($page['location']);
 			$result = csv2json($result);
 		}
 
 
 		$resultFiltered = [];
-		$filter = array_filter($filter, function($f) { return !empty($f); });
-		$params = array_filter($params, function($f) { return !empty($f); });
-		if(!empty($filter) || !empty($params)) {
-			foreach($result as $index => $item) {
-				foreach(array_merge($filter ?? [], $params ?? []) as $key => $val) {
-					if(in_array($item[$key], explode(",", $val))) {
+		$filter = array_filter($filter, function ($f) {
+			return !empty($f);
+		});
+		$params = array_filter($params, function ($f) {
+			return !empty($f);
+		});
+		if (!empty($filter) || !empty($params)) {
+			foreach ($result as $index => $item) {
+				foreach (array_merge($filter ?? [], $params ?? []) as $key => $val) {
+					if (in_array($item[$key], explode(",", $val))) {
 						$resultFiltered[] = $item;
 					}
 				}
@@ -69,15 +71,17 @@ class Pages extends BaseController
 
 		$headers = array_keys($result[0]);
 
-		foreach($headers as $header) {
-			if(!isset($fieldMaps[$header])) continue;
-			$filters[$fieldMaps[$header]] = array_values(array_unique(array_map(function($elem) use ($header) {return $elem[$header];}, $result)));
+		foreach ($headers as $header) {
+			if (!isset($fieldMaps[$header])) continue;
+			$filters[$fieldMaps[$header]] = array_values(array_unique(array_map(function ($elem) use ($header) {
+				return $elem[$header];
+			}, $result)));
 		}
 
 		$data['fieldMaps'] = array_flip($fieldMaps ?? []);
 		$data['filters'] = $filters;
 		$data['page'] = $page;
- 
+
 		$data['template'] = $page['template'];
 
 		$pivotting = @$this->makingChart($charts, $resultFiltered);
@@ -86,24 +90,27 @@ class Pages extends BaseController
 		exit;
 	}
 
-	public function cross_filter($pageId) {
-		if(isPostRequest()) {
+	public function cross_filter($pageId)
+	{
+		if (isPostRequest()) {
 			$this->load->model("Chart_model", "chart");
 			$this->load->model("Report_model", "report");
 			$this->load->helper(["pivot", "apex"]);
 			$post = json_decode(file_get_contents("php://input"), 1);
 			$file = $post['file'];
 			$requestedLabelId = $post['requestedLabelId'];
-			$filter = array_filter($post['cross'], function($f) { return !empty($f); });
+			$filter = array_filter($post['cross'], function ($f) {
+				return !empty($f);
+			});
 			$charts = $this->chart->findByPageId($pageId);
 			$resultFiltered = [];
 			$result = $this->report->getCsvFile($file);
 			$result = csv2json($result);
 			// dd($filter);
-			if(!empty($filter)) {
-				foreach($result as $index => $item) {
-					foreach($filter as $key => $val) {
-						if(!in_array($item[$key], $val)) {
+			if (!empty($filter)) {
+				foreach ($result as $index => $item) {
+					foreach ($filter as $key => $val) {
+						if (!in_array($item[$key], $val)) {
 							$resultFiltered[] = $item;
 						}
 					}
@@ -113,10 +120,10 @@ class Pages extends BaseController
 
 			$pivotting = @$this->makingChart($charts, $resultFiltered);
 			$result = [];
-			
-			foreach($pivotting[1] as &$chart) {
-				foreach($filter as $f) {
-					foreach($requestedLabelId as $index => $label) {
+
+			foreach ($pivotting[1] as &$chart) {
+				foreach ($filter as $f) {
+					foreach ($requestedLabelId as $index => $label) {
 						$chart['options']['data']['datasets'][$label + 1] = ['name' => $f[$index], "label" => $f[$index], "hidden" => true, "data" => []];
 					}
 				}
@@ -197,19 +204,24 @@ class Pages extends BaseController
 		echo BaseResponse::ok("Success", ["view" => $this->view("templates/" . $name, [], true)]);
 	}
 
-	private function makingChart($charts, $data) {
-		$charts_ = []; $rows = []; $datasets = [];
+	private function makingChart($charts, $data)
+	{
+		$charts_ = [];
+		$rows = [];
+		$datasets = [];
 		foreach ($charts as $chart) {
 			// if($chart["id"] != '89') continue;
-			$day = null; $month = null; $year = null;
+			$day = null;
+			$month = null;
+			$year = null;
 			$chart['row_index'] = (int)$chart['row_index'];
 			// var_dump($chart['row_index']);
 			if (is_int((int)$chart['row_index']) && count($data ?? []) > 0) {
 				$slice = json_decode($chart['slice'], 1);
 				// dd($slice);
 
-				foreach(array_merge($slice['rows'] ?? [], $slice['columns'] ?? []) ?? [] as $r) {
-					if($r['uniqueName'] == 'Measures') continue;
+				foreach (array_merge($slice['rows'] ?? [], $slice['columns'] ?? []) ?? [] as $r) {
+					if ($r['uniqueName'] == 'Measures') continue;
 
 					// if(preg_match("/\..*$/mui", $r['uniqueName'])){
 					// 	$part = preg_replace("/(.*?)(\..*)$/mui", "$1", $r['uniqueName']);
@@ -227,36 +239,36 @@ class Pages extends BaseController
 					// 	}
 					// }
 				}
-				
+
 				$pivot = PHPivot::create($data);
 				// dd(($pivot));
 
-				foreach($slice['rows'] ?? [] as $r) {
+				foreach ($slice['rows'] ?? [] as $r) {
 					$pivot->setPivotRowFields($r['uniqueName']);
 				}
-				foreach($slice['columns'] ?? [] as $r) {
-					if($r['uniqueName'] == 'Measures') continue;
+				foreach ($slice['columns'] ?? [] as $r) {
+					if ($r['uniqueName'] == 'Measures') continue;
 
 					$pivot->setPivotColumnFields($r['uniqueName']);
 				}
 
-				foreach($slice['measures'] ?? [] as $r) {
+				foreach ($slice['measures'] ?? [] as $r) {
 					$pivot->setPivotValueFields($r['uniqueName'], $r['aggregation'] == 'count' ? PHPivot::PIVOT_VALUE_COUNT : PHPivot::PIVOT_VALUE_SUM);
 				}
 
-				foreach($slice['reportFilters'] ?? [] as $r) {
-					foreach($r['filter']['members'] ?? [] as $member) {
+				foreach ($slice['reportFilters'] ?? [] as $r) {
+					foreach ($r['filter']['members'] ?? [] as $member) {
 						$pivot->addFilter($r['uniqueName'], explode(".", $member)[1] ?? '');
 					}
 				}
 
 				$sorting = null;
-				if(isset($slice['sorting'])) {
-					if(isset($slice['sorting']['column'])) {
+				if (isset($slice['sorting'])) {
+					if (isset($slice['sorting']['column'])) {
 						// dd(1);
 						$sorting = $slice['sorting']['column']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
 					}
-					if(isset($slice['sorting']['row'])) {
+					if (isset($slice['sorting']['row'])) {
 						$sorting = $slice['sorting']['row']['type'] == "asc" ? PHPivot::SORT_ASC : PHPivot::SORT_DESC;
 					}
 				}
@@ -264,12 +276,12 @@ class Pages extends BaseController
 				$chart['options'] = json_decode($chart['chart_options'], 1);
 				// dd($chart['options']['labels']);
 				$apex = new Apex($pivotData, $chart['chart_type'], $sorting, $slice, $chart['options']['labels'] ?? null, $chart['options']['series'] ?? []);
-				$chart['options']['data'] = ['datasets' => $apex->datasets];
+				$chart['options']['data'] = ['datasets' => []];
 				// dd($month);
-				if($month){
+				if ($month) {
 					$mounth = array_map("mounthConverter", $apex->labels);
 					// $chart['options']['xaxis'] = [];
-					$chart['options']['data']['labels'] = $mounth;	
+					$chart['options']['data']['labels'] = $mounth;
 				} else {
 					$chart['options']['data']['labels'] = $apex->labels;
 				}
@@ -280,17 +292,17 @@ class Pages extends BaseController
 
 				preg_match_all("/\{\{(.*?)\}\}/u", @$chart['options']['options']['plugins']['title']['text'], $matches);
 
-				foreach($matches[1] as $match) {
-					if(!is_null($apex->{$match})) {
-						$chart['options']['options']['plugins']['title']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['title']['text']);
+				foreach ($matches[1] as $match) {
+					if (!is_null($apex->{$match})) {
+						$chart['options']['options']['plugins']['title']['text'] = preg_replace("/\{\{" . $match . "\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['title']['text']);
 					}
 				}
 
 				preg_match_all("/\{\{(.*?)\}\}/u", @$chart['options']['options']['plugins']['subtitle']['text'], $matches);
 
-				foreach($matches[1] as $match) {
-					if(!is_null($apex->{$match})) {
-						$chart['options']['options']['plugins']['subtitle']['text'] = preg_replace("/\{\{".$match."\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['subtitle']['text']);
+				foreach ($matches[1] as $match) {
+					if (!is_null($apex->{$match})) {
+						$chart['options']['options']['plugins']['subtitle']['text'] = preg_replace("/\{\{" . $match . "\}\}/u", $apex->{$match}, $chart['options']['options']['plugins']['subtitle']['text']);
 					}
 				}
 				$datasets[] = $chart['options']['data']['datasets'];
@@ -298,14 +310,14 @@ class Pages extends BaseController
 				$rows[$chart['row_index']][] = $chart;
 				$charts_[] = $chart;
 			}
-
 		}
 		// dd($charts_);
 		return [$datasets, $charts_];
 	}
-	
 
-	public function delete($page_id) {
+
+	public function delete($page_id)
+	{
 		$this->load->model("Chart_model", "chart");
 		$this->chart->delete($page_id, "page_id");
 		$this->page->delete($page_id, "id");

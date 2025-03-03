@@ -1,6 +1,7 @@
 <?php
 
-class BaseController extends CI_Controller {
+class BaseController extends CI_Controller
+{
     public $title;
     public $vendorScripts;
     public $vendorStyles;
@@ -10,8 +11,6 @@ class BaseController extends CI_Controller {
 
     function __construct()
     {
-        
-
         $this->title = "Hesabatların idarə edilməsi sistemi";
 
         // Vendor Styles
@@ -42,39 +41,45 @@ class BaseController extends CI_Controller {
         parent::__construct();
     }
 
-    public function page($view, $data = [], $sidebar = true, $json = false) {
+    public function page($view, $data = [], $sidebar = true, $json = false)
+    {
         $this->sidebar = $sidebar;
         $this->header();
-        if($sidebar) {
+        if ($sidebar) {
             $this->sidebar();
         }
 
-        $this->load->view("pages/" . $this->defaultView(). $view, $data, $json);
+        $this->load->view("pages/" . $this->defaultView() . $view, $data, $json);
         $this->footer();
     }
 
-    public function view($view, $data = [], $json = false) {
-        return $this->load->view("pages/" . $this->defaultView(). $view, $data, $json);
+    public function view($view, $data = [], $json = false)
+    {
+        return $this->load->view("pages/" . $this->defaultView() . $view, $data, $json);
     }
 
-    private function sidebar() {
+    private function sidebar()
+    {
         $this->load->view("layout/sidebar");
         return $this;
     }
 
-    private function header() {
+    private function header()
+    {
         $this->load->view("layout/header");
         return $this;
     }
 
-    private function footer() {
+    private function footer()
+    {
         $this->load->view("layout/footer");
         return $this;
     }
 
-    protected function set($variable, $data) {
-        if(is_array($data)) {            
-            $this->{$variable} = array_merge($this->{$variable}, array_map(function($s) {
+    protected function set($variable, $data)
+    {
+        if (is_array($data)) {
+            $this->{$variable} = array_merge($this->{$variable}, array_map(function ($s) {
                 return BASE_PATH . "assets/" . $s;
             }, $data));
         } else {
@@ -83,7 +88,8 @@ class BaseController extends CI_Controller {
         return $this;
     }
 
-    private function defaultView() {
+    private function defaultView()
+    {
         return (get_class_vars($this::class)['view'] ?? strtolower(get_class($this))) . "/";
     }
 }

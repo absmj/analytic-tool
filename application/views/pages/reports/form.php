@@ -57,7 +57,7 @@
                             <label for="validationDefault04" class="form-label d-flex justify-content-between">İşləmə tezliyi <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra edilmə tezliyi, hesabatın avtomatik işləyəcəyi tarixləri bildirir. Günlük icra edilmə səhər 9<sup>00</sup>, digərləri isə başlama tarixlərində icra ediləcək."></i></label>
                             <select class="form-select" name="cron_frequency" onchange="cron(event)">
                                 <?php foreach ($crons as $cron) : ?>
-                                    <option <?= $db == ($report['cron_id'] ?? '') ? 'selected' : '' ?> value="<?= $cron['job'] ?>"><?= $cron['title'] ?></option>
+                                    <option <?= $db == ($report['cron_id'] ?? '') ? 'selected' : '' ?> value="<?= $cron['id'] ?>"><?= $cron['title'] ?></option>
                                 <?php endforeach ?>
                                 <option value="">Fərdi</option>
                             </select>
