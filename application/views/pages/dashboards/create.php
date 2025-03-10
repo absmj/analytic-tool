@@ -142,6 +142,7 @@
                         <hr>
                         <h5>Slice</h5>
                         <div class="row">
+                            <input type="hidden" name="table" value="<?= $report['report_table'] ?>">
                             <div class="col-12">
                                 <label for="validationDefault04" class="form-label d-flex justify-content-between">Row <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra ediləcəyi bazanı seçin."></i></label>
                                 <select name="slice.row" class="form-select" required>
@@ -314,15 +315,14 @@
         }
     }
 
-    async function handleForm(e) {
+    async function handleForm() {
         $("[name^='slice']").each(function() {
             _.set(items.chart, $(this).attr("name"), $(this).val())
         })
 
         try {
-            const request = await $.post('/chart/pivot', items.chart.slice);
+            const request = await $.post(`/chart/pivot/${$('[name="table"]').val()}`, items.chart.slice);
             const respose = await request.json();
-
         } catch (e) {
             console.log(e)
         }

@@ -8,6 +8,7 @@ class Chart extends BaseController
     public function __construct()
     {
         parent::__construct();
+        $this->load->model("Chart_model", "chart");
     }
 
     public function index($type)
@@ -16,9 +17,10 @@ class Chart extends BaseController
         echo BaseResponse::ok("Success", $data);
     }
 
-    public function pivot()
+    public function pivot($table)
     {
         $slice = post();
+        $this->chart->pivot($table, $slice);
         dd($slice);
     }
 }
