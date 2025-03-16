@@ -20,7 +20,32 @@ class Chart extends BaseController
     public function pivot($table)
     {
         $slice = post();
-        $this->chart->pivot($table, $slice);
-        dd($slice);
+        $pivot = $this->chart->pivot($table, $slice);
+        $labels = [];
+        $dataset = [];
+        $cols = [];
+        // $labels = array_column($pivot, "row_id");
+        foreach ($pivot as $value) {
+            $labels = array_merge(array_column($value, 'row_id'), $labels);
+            foreach ($value as $k => $val) {
+                $cols = array_merge(array_keys($val['data']), $cols);
+            }
+        }
+
+        $cols = array_values(array_unique($cols));
+        $labels = array_values(array_unique($labels));
+        foreach ($cols as $col) {
+            $data = [];
+            foreach ($pivot as $value) {
+                foreach ($value as $k => $val) {
+                    $data[] = isset($val['data'][$col]) ? $val['data'][$col] : 0;
+                }
+            }
+            $dataset[] = [
+                'label' => $col,
+                'data' => $data
+            ];
+        }
+        echo BaseResponse::ok("Success", ['dataset' => $dataset, 'labels' => $labels]);
     }
 }

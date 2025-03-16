@@ -15,10 +15,10 @@ class Chart_model extends CRUD
                     $sql[] = $this->db->compile_binds("SELECT * FROM psd_analytic(
                         ?, ?, ?, ?, ?, ?::json)", [
                         $table,
-                        $this->checkEmpty($slice['row'], $slice['column']),
-                        $this->checkEmpty($slice['column'], $slice['row']),
-                        $this->checkEmpty($value['field'], $this->checkEmpty($slice['row'], $slice['column'])),
-                        $this->checkEmpty(strtolower($value['aggregation']), 'count'),
+                        checkEmpty($slice['row'], $slice['column']),
+                        checkEmpty($slice['column'], $slice['row']),
+                        checkEmpty($value['field'], checkEmpty($slice['row'], $slice['column'])),
+                        checkEmpty(strtolower($value['aggregation']), 'count'),
                         is_array($slice['filter'] ?? null) ? json_encode($slice['filter']) : NULL
                     ]);
                 }
@@ -28,15 +28,10 @@ class Chart_model extends CRUD
                 $result = array_map(function ($item) {
                     return json_decode($item['result'], 1);
                 }, $result);
-                dd($result);
+                return $result;
             }
-        } catch (\Exception $e) {
+        } catch (\Error $e) {
             return [];
         }
-    }
-
-    private function checkEmpty($field, $reserve)
-    {
-        return empty($field) ? $reserve : $field;
     }
 }
