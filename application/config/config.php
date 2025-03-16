@@ -532,3 +532,4 @@ $config['rewrite_short_tags'] = FALSE;
 $config['proxy_ips'] = '';
 
 
+$config['ms-file'] = 'https://kale.eu5.org';

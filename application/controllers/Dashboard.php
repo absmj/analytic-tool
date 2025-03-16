@@ -98,6 +98,7 @@ class Dashboard extends BaseController
 		// dd($data);
 		$data['result'] = $result ?? [];
 		$data['report'] = $report ?? [];
+		// dd($data['report']);
 		// echo BaseResponse::ok("Success", $data['result']);
 		$this->page("create", $data, false);
 	}

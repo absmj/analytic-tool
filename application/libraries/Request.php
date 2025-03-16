@@ -1,10 +1,6 @@
 <?php
-
 class Request {  
-    private function __construct()
-    {
-        
-    }
+    public function __construct(){}
 
     public static function get($url, $header = []) {
         return self::request($url, 'GET', $header);
@@ -36,7 +32,7 @@ class Request {
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
         if(!empty($body))
-            curl_setopt($ch, CURLOPT_POSTFIELDS,  http_build_query($body));
+            curl_setopt($ch, CURLOPT_POSTFIELDS,  $body);
 
         if(!empty($header))
             curl_setopt($ch, CURLOPT_HEADER, $header);

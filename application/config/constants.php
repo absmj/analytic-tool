@@ -85,3 +85,5 @@ defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9); // lowest automat
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
 defined('BASE_PATH')           OR define('BASE_PATH', '/');
 defined('BASE_URL_REQUEST')           OR define('BASE_URL_REQUEST', '/');
+defined('GOOGLE_CID') OR define('GOOGLE_CID', '207571909545-3uoss8sgtabeituk98pk5873u0kqm52j.apps.googleusercontent.com');
+defined('GOOGLE_CS') OR define('GOOGLE_CS', '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');

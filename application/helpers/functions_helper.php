@@ -45,7 +45,7 @@ if (!function_exists('isPostRequest')) {
 if (!function_exists('post')) {
     function post($field = null)
     {
-        
+
         return !$field ? $_POST : ($_POST[$field] ?? null);
     }
 }
@@ -129,26 +129,44 @@ function csv2json($csv)
     return $array;
 }
 
-function mounthConverter($mounth) {
-    switch($mounth) {
+function autorize()
+{
+    return true;
+}
+
+function mounthConverter($mounth)
+{
+    switch ($mounth) {
         case 1:
-            return "Yanvar";    case 2:
-                return "Fevral";        case 3:
-                    return "Mart";        case 4:
-                        return "Aprel";        case 5:
-                            return "May";        case 6:
-                                return "İyun";        case 7:
-                                    return "İyul";        case 8:
-                                        return "Avqust";        case 9:
-                                            return "Sentyabr";        case 10:
-                                                return "Oktyabr";        case 11:
-                                                    return "Noyabr";        case 12:
-                                                        return "Dekabr";
+            return "Yanvar";
+        case 2:
+            return "Fevral";
+        case 3:
+            return "Mart";
+        case 4:
+            return "Aprel";
+        case 5:
+            return "May";
+        case 6:
+            return "İyun";
+        case 7:
+            return "İyul";
+        case 8:
+            return "Avqust";
+        case 9:
+            return "Sentyabr";
+        case 10:
+            return "Oktyabr";
+        case 11:
+            return "Noyabr";
+        case 12:
+            return "Dekabr";
     }
 }
 
 // Error/Exception helper
-function api_error($error, $errno = 500) {
+function api_error($error, $errno = 500)
+{
 
     http_response_code($errno);
     header('Content-Type: application/json');
@@ -161,5 +179,73 @@ function api_error($error, $errno = 500) {
     ]);
 }
 
-?>
+function base64UrlDecode($input)
+{
+    $remainder = strlen($input) % 4;
+    if ($remainder) {
+        $input .= str_repeat('=', 4 - $remainder);
+    }
+    return base64_decode(strtr($input, '-_', '+/'));
+}
 
+function decodeJwt($jwt)
+{
+    // Split the JWT into its components
+    $parts = explode('.', $jwt);
+
+    if (count($parts) !== 3) {
+        return ['error' => 'Invalid JWT format'];
+    }
+
+    // Decode each part
+    $header = json_decode(base64UrlDecode($parts[0]), true);
+    $payload = json_decode(base64UrlDecode($parts[1]), true);
+    $signature = $parts[2];
+
+    return $payload;
+}
+
+// function pkcs7_pad($data, $size)
+// {
+//     $length = $size - strlen($data) % $size;
+//     return $data . str_repeat(chr($length), $length);
+// }
+
+// function pkcs7_unpad($data)
+// {
+//     return substr($data, 0, -ord($data[strlen($data) - 1]));
+// }
+
+// function cookiedecryptor($name, $iv)
+// {
+//     return openssl_decrypt(
+//         $name,
+//         'AES-256-CBC',
+//         '22$#$#5fs45fd3@!!45ret&&54',
+//         0,
+//         $iv
+//     );
+// }
+
+// function cookieencryptor($data)
+// {
+//     $iv_size = 16; // 128 bits
+//     $iv = openssl_random_pseudo_bytes($iv_size);
+//     return openssl_encrypt(
+//         pkcs7_pad($data, 16), // padded data
+//         'AES-256-CBC',        // cipher and mode
+//         '22$#$#5fs45fd3@!!45ret&&54',      // secret key
+//         0,                    // options (not used)
+//         $iv                   // initialisation vector
+//     );
+// }
+
+function user($key = null)
+{
+    return $key && isset($_SESSION['auth'][$key]) ? $_SESSION['auth'][$key] : $_SESSION['auth'];
+}
+
+function checkEmpty($field, $reserve)
+{
+    return empty($field) ? $reserve : $field;
+}
