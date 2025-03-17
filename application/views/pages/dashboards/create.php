@@ -231,9 +231,10 @@
     const result = JSON.parse(`<?= json_encode($result ?? []) ?>`)
     const chartTemplate = () => {
         const uid = uuid();
-        return `<div class="chart">
-            <i class="bi bi-bar-chart-line-fill"></i>
-        </div>`;
+        const chart = document.createElement("div");
+        chart.className = 'chart';
+
+        return chart;
     }
 
     const chartSlice = {
@@ -252,13 +253,12 @@
 
     var grid = GridStack.init();
     const items = {
-        grids: [{
+        charts: [{
+            grid: {
                 w: 4,
                 h: 3,
                 content: chartTemplate()
             }, // will default to location (0,0) and 1x1
-        ],
-        charts: [{
             slice: {
                 row: null,
                 column: null,
@@ -274,6 +274,11 @@
         }],
         options: null,
         selected: 0,
+
+        get grids() {
+            return this.charts.map(item => item.grid);
+        },
+
         get chart() {
             return this.charts[this.selected]
         },
@@ -290,8 +295,8 @@
                 h: 3,
                 content: chartTemplate()
             });
-            this.grids = grids;
             this.charts.push({
+                grids,
                 slice: {
                     row: null,
                     column: null,

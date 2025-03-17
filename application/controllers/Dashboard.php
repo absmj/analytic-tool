@@ -61,11 +61,11 @@ class Dashboard extends BaseController
 				"vendor/datatables/datatables.js",
 				"vendor/pivottable/pivottable.js",
 				"vendor/gridstack/gridstack.js",
-				"vendor/select2/select2.js",
+				"vendor/chart.js/chart.js",
 			])
 			->set("vendorScripts", [
 				"js/functions.js",
-				"js/mock-data.js"
+				"js/charts/chart-js.js"
 			])
 			->set("scripts", [
 				// "js/chart-visual.js",
