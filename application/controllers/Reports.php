@@ -82,6 +82,56 @@ class Reports extends BaseController
 		$this->page("form", $data);
 	}
 
+	public function edit($id)
+	{
+		if (isPostRequest()) {
+			try {
+				$data = $this->report->run(post('db'), post('sql'), post('params') ?? []);
+
+				if (post("step") == 0) {
+					if (empty($data)) {
+						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
+					} else {
+						$keys = array_keys($data[0]);
+						$filteredKeys = array_values(array_filter($keys, function ($k) {
+							return $k != 'id';
+						}));
+						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $filteredKeys);
+					}
+				} else {
+					$this->saveReport($data, null, false, false);
+				}
+			} catch (Exception $e) {
+				echo BaseResponse::error("Hesabatın icra edilməsi zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
+			} finally {
+				exit;
+			}
+		}
+
+		$this->set("vendorScripts", [
+			"vendor/codemirror/codemirror.js",
+			"vendor/codemirror/sql/sql.js",
+			"vendor/codemirror/match-brackets.js",
+			"vendor/codemirror/hint.js",
+			"vendor/codemirror/sql/hint.js",
+		])
+			->set("vendorStyles", [
+				"vendor/codemirror/codemirror.css",
+			])
+			->set("scripts", [
+				"js/steps.js"
+			])
+			->set("styles", [
+				"css/folder.css"
+			]);
+		$data['report'] = $this->report->get($id);
+		$data['folders'] = $this->folder->list();
+		// dd($data['folders']);
+		$data['crons'] = $this->cron->list();
+
+		$this->page("form", $data);
+	}
+
 
 	public function get($report_id)
 	{
@@ -93,32 +143,7 @@ class Reports extends BaseController
 	{
 		$report = $this->report->get($report_id);
 
-		$reportData = $this->report->run($report['db'], $report['sql'], $report['params'] != 'null' ? json_decode($report['params'], 1) : []);
-
-		$csv = tempnam(sys_get_temp_dir(), 'csv');
-		$header = array_keys($reportData[0]);
-		foreach ($reportData as &$r) {
-			foreach ($r as $rk => $v) {
-				if (preg_match("/date$/i", $v)) {
-					$timestamp = strtotime($v);
-					$r[$rk . ".Date"] = date('d', $timestamp);
-					$r[$rk . ".Month"] = date('m', $timestamp);
-					$r[$rk . ".Year"] = date('Y', $timestamp);
-					$r[$rk . ".Timestamp"] = $timestamp;
-				}
-			}
-		}
-		$fp = fopen($csv, 'w');
-		fputcsv($fp, $header);
-
-		if ($csv) {
-			foreach ($reportData as $d) fputcsv($fp, $d);
-			$location = $this->report->upload($csv);
-
-			$this->file->update($report['file_id'], ['name' => $location['name'], 'location' => $location['uniqueFileId']]);
-		}
-
-		$this->report->deleteFile($report['file']);
+		$this->report->run($report['db'], $report['sql'], $report['params'] != 'null' ? json_decode($report['params'], 1) : []);
 
 		$job = [
 			"query_id" => $report['query_id'],
@@ -133,13 +158,6 @@ class Reports extends BaseController
 	public function delete($report_id)
 	{
 		$reportData = $this->report->get($report_id);
-		if (isset($reportData['file']) || (isset($reportData['file']) && empty($reportData['file']))) {
-			try {
-				$this->report->deleteFile($reportData['file']);
-			} catch (Error $e) {
-			}
-		}
-
 		$data = $this->report->update($report_id, ['is_deleted' => true]);
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
@@ -194,13 +212,8 @@ class Reports extends BaseController
 
 				if ($base) {
 					$this->report->update($base, $reportInsert);
-					$report = $base;
 				} else {
 					$report = $this->report->insert($reportInsert);
-				}
-
-				if ($base > 0) {
-					$this->report->update($base, ['is_deleted' => true]);
 				}
 
 				$job = [

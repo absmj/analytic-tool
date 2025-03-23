@@ -1,32 +1,55 @@
 function randomizeArray(arg) {
-    var array = arg.slice();
-    var currentIndex = array.length,
-        temporaryValue, randomIndex;
+	var array = arg.slice();
+	var currentIndex = array.length,
+		temporaryValue,
+		randomIndex;
 
-    while (0 !== currentIndex) {
+	while (0 !== currentIndex) {
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
 
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex -= 1;
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
 
-        temporaryValue = array[currentIndex];
-        array[currentIndex] = array[randomIndex];
-        array[randomIndex] = temporaryValue;
-    }
-
-    return array;
+	return array;
 }
 
 function trigoSeries(cnt, strength) {
-    var data = [];
-    for (var i = 0; i < cnt; i++) {
-        data.push((Math.sin(i / strength) * (i / strength) + i / strength + 1) * (strength * 2));
-    }
+	var data = [];
+	for (var i = 0; i < cnt; i++) {
+		data.push(
+			(Math.sin(i / strength) * (i / strength) + i / strength + 1) *
+				(strength * 2)
+		);
+	}
 
-    return data;
+	return data;
 }
 
 function uuid() {
-    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
-        (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
-    );
+	return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+		(
+			+c ^
+			(crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))
+		).toString(16)
+	);
+}
+
+function simpleStringify(object) {
+	const simpleObject = {};
+	for (const prop in object) {
+		if (!object.hasOwnProperty(prop)) {
+			continue;
+		}
+		if (typeof object[prop] == "object") {
+			continue;
+		}
+		if (typeof object[prop] == "function") {
+			continue;
+		}
+		simpleObject[prop] = object[prop];
+	}
+	return JSON.stringify(simpleObject);
 }

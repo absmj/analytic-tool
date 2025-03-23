@@ -45,8 +45,8 @@ if (!function_exists('isPostRequest')) {
 if (!function_exists('post')) {
     function post($field = null)
     {
-
-        return !$field ? $_POST : ($_POST[$field] ?? null);
+        $post = empty($_POST) ? json_decode(file_get_contents("php://input"), 1) : $_POST;
+        return !$field ? $post : ($post[$field] ?? null);
     }
 }
 
@@ -248,4 +248,14 @@ function user($key = null)
 function checkEmpty($field, $reserve)
 {
     return empty($field) ? $reserve : $field;
+}
+
+if (!function_exists('array_is_list')) {
+    function array_is_list(array $arr)
+    {
+        if ($arr === []) {
+            return true;
+        }
+        return array_keys($arr) === range(0, count($arr) - 1);
+    }
 }

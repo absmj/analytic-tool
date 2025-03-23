@@ -1,22 +1,22 @@
-
-
-const queryFormModal = new bootstrap.Modal(document.getElementById('queryparams'))
-const table = document.getElementById("table-data")
-const paramsForm = $('[name="queryparams-form"]')
-const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
-  mode: 'sql',
-  indentWithTabs: true,
-  smartIndent: true,
-  lineNumbers: true,
-  matchBrackets: true,
-  autofocus: true,
-  extraKeys: { "Ctrl-Space": "autocomplete" },
-  hintOptions: {
-    tables: {
-      users: ["name", "score", "birthDate"],
-      countries: ["name", "population", "size"]
-    }
-  }
+const queryFormModal = new bootstrap.Modal(
+	document.getElementById("queryparams")
+);
+const table = document.getElementById("table-data");
+const paramsForm = $('[name="queryparams-form"]');
+const editor = CodeMirror.fromTextArea(document.getElementById("sql"), {
+	mode: "sql",
+	indentWithTabs: true,
+	smartIndent: true,
+	lineNumbers: true,
+	matchBrackets: true,
+	autofocus: true,
+	extraKeys: { "Ctrl-Space": "autocomplete" },
+	hintOptions: {
+		tables: {
+			users: ["name", "score", "birthDate"],
+			countries: ["name", "population", "size"],
+		},
+	},
 });
 
 // const steps = {
@@ -83,8 +83,6 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //         if (this.container)
 //           this.container.classList.add("d-none")
 //       },
-
-
 
 //       async nextStage(callback, step) {
 //         const data = await this.create(() => {
@@ -177,7 +175,6 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //         return;
 //       }
 
-
 //       this.nextButton.setAttribute('disabled', true)
 //       this.nextButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`
 //       const data = await this.currentStep.nextStage(() => {
@@ -202,10 +199,6 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //       fCheck()
 //     })
 
-
-
-
-
 //     this.nextButton.addEventListener('click', (e) => {
 
 //       console.log(this.current)
@@ -229,7 +222,6 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //       this.currentStep.mounted();
 //     })
 //   },
-
 
 //   get nextStep() {
 //     if (this.current < this.steps.length) {
@@ -301,12 +293,11 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 //         const ff = Object.fromEntries(formData)
 //         const paramsData = new FormData(queryParamForm)
 //         const params = Object.fromEntries(paramsData)
-//         this.currentStep.data = { ...this.currentStep.data, ...ff, ...params }        
+//         this.currentStep.data = { ...this.currentStep.data, ...ff, ...params }
 //         if (!this.currentStep.validity() && !form.checkValidity() && !queryParamForm.checkValidity()) {
 //             form.reportValidity();
 //             throw new Error("Form elementləri tam doldurulmayıb. * ilə işarələnmiş xanalara tələb olunan dəyərlər daxil edilməlidir.")
 //         }
-
 
 //       }
 
@@ -366,159 +357,169 @@ const editor = CodeMirror.fromTextArea(document.getElementById('sql'), {
 // }
 
 const formReport = {
-  data: {
-    name: null,
-    sql: null,
-    report_folder: null,
-    cron_job: null,
-    database: null,
-    params: new Set
-  },
+	data: {
+		name: null,
+		sql: null,
+		report_folder: null,
+		cron_job: null,
+		database: null,
+		params: new Set(),
+	},
 
-  get params() {
-    return this.data.params
-  },
+	get params() {
+		return this.data.params;
+	},
 
-  set params(p) {
-    this.data.params = new Set(p.map(e => e.replace(/\{@(.*?)@\}/g, "$1")))
-    paramsForm.html('')
-    Array.from(this.params).forEach(p => paramsForm.append(`
+	set params(p) {
+		this.data.params = new Set(p.map((e) => e.replace(/\{@(.*?)@\}/g, "$1")));
+		paramsForm.html("");
+		Array.from(this.params).forEach((p) =>
+			paramsForm.append(`
       <div class="mb-3">
         <label for="${p}" class="col-form-label">${p}:</label>
         <input required name="params[]" type="text" class="form-control" id="${p}">
-      </div>`))
-  },
+      </div>`)
+		);
+	},
 
-  set sql(s) {
-    this.data.sql = s;
-  },
+	set sql(s) {
+		this.data.sql = s;
+	},
 
-  validity() {
-    if (!this.data.name)
-      throw new Error("Hesabatın adı daxil edilməyib!");
+	validity() {
+		if (!this.data.name) throw new Error("Hesabatın adı daxil edilməyib!");
 
-    if (!this.data.sql)
-      throw new Error("Hesabatın SQL sorğusu daxil edilməyib!");
+		if (!this.data.sql)
+			throw new Error("Hesabatın SQL sorğusu daxil edilməyib!");
 
-    if (/(update|insert|delete|truncate|drop|alter|create|revoke|commit|rollback)/muis.test(this.data.sql))
-      throw new Error("Hesabatın SQL sorğusu düzgün deyil. Bazadan yalnız məlumatların oxunması mümkündür!");
+		if (
+			/(update|insert|delete|truncate|drop|alter|create|revoke|commit|rollback)/imsu.test(
+				this.data.sql
+			)
+		)
+			throw new Error(
+				"Hesabatın SQL sorğusu düzgün deyil. Bazadan yalnız məlumatların oxunması mümkündür!"
+			);
 
-    if (!this.data.report_folder)
-      throw new Error("Hesabat qovluğu seçilməyib!");
+		if (!this.data.report_folder)
+			throw new Error("Hesabat qovluğu seçilməyib!");
 
-    if (!this.data.database)
-      throw new Error("SQL-in işləyəcəyi baza seçilməyib!");
+		if (!this.data.database)
+			throw new Error("SQL-in işləyəcəyi baza seçilməyib!");
 
-    if (!this.data.cron_job)
-      throw new Error("İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!");
-  
-    if (!this.data.report_table)
-      throw new Error("Hesabatın cədvəl adı daxil edilməyib");
+		if (!this.data.cron_job)
+			throw new Error(
+				"İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!"
+			);
 
-    return true;
-  },
+		if (!this.data.report_table)
+			throw new Error("Hesabatın cədvəl adı daxil edilməyib");
 
-  async run(e) {
-    try {
+		return true;
+	},
 
+	async run(e) {
+		try {
+			const forms = {
+				report: document.forms[`report-form`],
+				query: document.forms[`queryparams-form`],
+				report_options: document.forms[`report_options`],
+			};
 
-      const forms = {
-        report: document.forms[`report-form`],
-        query: document.forms[`queryparams-form`],
-        report_options: document.forms[`report_options`],
-      }
+			const formData = new FormData(forms.report);
+			const ff = Object.fromEntries(formData);
+			const paramsData = new FormData(forms.query);
+			const params = Object.fromEntries(paramsData);
+			const reportOptions = new FormData(forms.report_options);
+			const rOpts = Object.fromEntries(reportOptions);
+			const fields = new Object();
+			$("[data-target='fields']").each(function () {
+				fields[$(this).attr("data-field")] = $(this).val();
+			});
+			this.data = { ...this.data, ...ff, ...params, ...rOpts, fields };
 
-      const formData = new FormData(forms.report)
-      const ff = Object.fromEntries(formData)
-      const paramsData = new FormData(forms.query)
-      const params = Object.fromEntries(paramsData)
-      const reportOptions = new FormData(forms.report_options)
-      const rOpts = Object.fromEntries(reportOptions)
-      const fields = new Object;
-      $("[data-target='fields']").each(function() {
-        fields[$(this).attr('data-field')] = $(this).val()
-      });
-      this.data = { ...this.data, ...ff, ...params, ...rOpts, fields} 
+			this.validity();
 
-      this.validity();
+			if (!forms.report.checkValidity()) {
+				forms.report.reportValidity();
+				throw new Error("Form elementləri düzgün doldurulmayıb");
+			}
 
-      if(!forms.report.checkValidity()) {
-        forms.report.reportValidity();
-        throw new Error("Form elementləri düzgün doldurulmayıb")
-      }
+			if (this.params.size > 0 && !queryFormModal._isShown) {
+				queryFormModal.show();
+				return;
+			}
 
-      if(this.params.size > 0 && !queryFormModal._isShown) {
-        queryFormModal.show()
-        return;
-      }
+			if (!forms.query.checkValidity()) {
+				forms.query.reportValidity();
+				throw new Error("SQL parametrləri daxil edilməyib");
+			}
 
-      if(!forms.query.checkValidity()) {
-        forms.query.reportValidity();
-        throw new Error("SQL parametrləri daxil edilməyib")
-      }
+			if (queryFormModal._isShown) queryFormModal.hide();
 
+			const step = $(e).attr("data-step");
+			const isEdit = $(e).attr("is-edit") == 1;
+			console.log(this.data);
+			$(e).prop("disabled", true);
+			uiInterface.loading = true;
 
+			const response = await $.post(
+				`/reports/${isEdit ? `edit/${reportId}` : "create"}`,
+				{ ...this.data, step }
+			);
 
-      if(queryFormModal._isShown) queryFormModal.hide();
+			if (step == 0) {
+				this.generateTable(response.data);
+				$(e).attr("data-step", 1);
+				$("#stepone").addClass("d-none");
+				$("#steptwo").removeClass("d-none");
+			} else {
+				alert(response.message);
+				// window.location.href = BASE_URL + 'reports'
+			}
+		} catch (e) {
+			uiInterface.error = e.message;
+		} finally {
+			$(e).prop("disabled", false);
+			uiInterface.loading = false;
+		}
+	},
 
-      const step = $(e).attr('data-step');
-      console.log(this.data)
-      $(e).prop("disabled", true)
-      uiInterface.loading = true;
-
-      const response = await $.post(`/reports/${isEdit ? `edit/${reportId}` : 'create'}`, { ...this.data, step });
-      
-      if(step == 0) {
-        this.generateTable(response.data)
-        $(e).attr('data-step', 1)
-        $("#stepone").addClass("d-none")
-        $("#steptwo").removeClass("d-none")
-      } else {
-        alert(response.message)
-        // window.location.href = BASE_URL + 'reports'
-      }
-
-    } catch(e) {
-      uiInterface.error = e.message
-    } finally {
-      $(e).prop("disabled", false)
-      uiInterface.loading = false
-    }
-  },
-
-  generateTable(data) {
-    table.innerHTML = `
+	generateTable(data) {
+		table.innerHTML = `
     <h5>Sütunlar</h5>
     <p class='text-muted'>Filterasiya zamanı tətbiq ediləcək sütunlar</p>
     <small>Hər bir sütunun solundakı seçimi etməklə, unikal sütunu təyin edə bilərsiniz. Bu sütun cədvəldə data-ların yenilənməsi üçün təyin edilib.</small>
     <hr>
     <div class="row">
-    ${
-      data.map(d => `<div class="col-md-3">
+    ${data
+			.map(
+				(d) => `<div class="col-md-3">
                         <div class="form-check position-relative">
                             <button type="button" onclick="this.parentNode.remove()" style="right:0" class="position-absolute btn btn-sm btn-danger">Sil</button>
                             <input type="radio" class="form-check-input" name="unique" value="${d}">
                             <input data-field="${d}" value="${d}" type="text" class="form-control form-check-label" data-target="fields" required>
                         </div>
-                      </div>`).join("")
-    }
+                      </div>`
+			)
+			.join("")}
 
     </div>
     `;
-  },
+	},
 
-  init() {
-    editor.on('blur', (e) => {
-      this.sql = editor.getValue()
+	init() {
+		editor.on("blur", (e) => {
+			this.sql = editor.getValue();
 
-      const params = /{@(.*?)@}/gmis
-      if (params.test(this.data.sql)) {
-        this.params = this.data.sql.match(/{@(.*?)@}/gmis)
-      }
-    })
-  }
-}
+			const params = /{@(.*?)@}/gims;
+			if (params.test(this.data.sql)) {
+				this.params = this.data.sql.match(/{@(.*?)@}/gims);
+			}
+		});
+	},
+};
 
 document.addEventListener("DOMContentLoaded", () => {
-  formReport.init()
-})
+	formReport.init();
+});

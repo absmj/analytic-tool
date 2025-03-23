@@ -27,9 +27,12 @@ class Dashboard extends BaseController
 		$this->load->model("Report_model", "report");
 
 		if (isPostRequest()) {
-			$post = json_decode(file_get_contents("php://input"), 1);
+
+			$post = post();
+			// dd($post);
 			$this->load->model("Page_model", "page");
 			$this->load->model("Chart_model", "chart");
+
 			$page_id = $this->page->insert([
 				'title' => $post['title'],
 				// "template" => $this->input->get('template'),
@@ -61,7 +64,8 @@ class Dashboard extends BaseController
 				"vendor/datatables/datatables.js",
 				"vendor/pivottable/pivottable.js",
 				"vendor/gridstack/gridstack.js",
-				"vendor/chart.js/chart.js",
+				"vendor/chart.js/chart.umd.js",
+				"vendor/select2/select2.js",
 			])
 			->set("vendorScripts", [
 				"js/functions.js",

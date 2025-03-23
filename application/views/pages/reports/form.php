@@ -75,11 +75,10 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="col-12">
                             <div class="">
                                 <label for="sql" class="form-label d-flex justify-content-between mb-1">SQL <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="Yazılmış sorğular yalnız məlumat əldə edilməsi üçün nəzərdə tutulmalıdır"></i></label>
-                                <textarea value="<?= $report['sql'] ?? '' ?>" model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"></textarea>
+                                <textarea model="SQL sorğu" class="form-control" id="sql" style="height: 100px;"><?= $report['sql'] ?? '' ?></textarea>
                             </div>
                         </div>
                     </form>

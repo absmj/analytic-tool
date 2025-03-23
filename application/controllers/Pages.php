@@ -32,62 +32,65 @@ class Pages extends BaseController
 	{
 		$this->load->model("Chart_model", "chart");
 		$this->load->model("Report_model", "report");
-		$this->load->helper(["pivot", "apex"]);
 		$page = $this->page->get($id);
-
+		$report = $this->report->get($page['report_id']);
+		$fieldsMap = json_decode($report['fields_map'], 1);
+		$data['columns'] = array_values(array_filter($this->report->columns($report['report_table']), function ($item) {
+			return !preg_match('/[_]*id/ui', $item['column_name']);
+		}));
+		$data['filters'] = $this->report->getFieldDistinctValues($report['report_table'], ($fieldsMap));
 		$charts = $this->chart->findByPageId($page['id']);
-
 		$data['page'] = $page;
-
-		$params = json_decode($report['params'] ?? '[]', 1) ?? [];
-		$filter = $this->input->get();
-
-		if ($page['location']) {
-			$result = $this->report->getCsvFile($page['location']);
-			$result = csv2json($result);
-		}
-
-
-		$resultFiltered = [];
-		$filter = array_filter($filter, function ($f) {
-			return !empty($f);
-		});
-		$params = array_filter($params, function ($f) {
-			return !empty($f);
-		});
-		if (!empty($filter) || !empty($params)) {
-			foreach ($result as $index => $item) {
-				foreach (array_merge($filter ?? [], $params ?? []) as $key => $val) {
-					if (in_array($item[$key], explode(",", $val))) {
-						$resultFiltered[] = $item;
-					}
-				}
-			}
-		} else {
-			$resultFiltered = $result;
-		}
-
 		$fieldMaps = json_decode($page['fields_map'], 1);
-
-		$headers = array_keys($result[0]);
-
-		foreach ($headers as $header) {
-			if (!isset($fieldMaps[$header])) continue;
-			$filters[$fieldMaps[$header]] = array_values(array_unique(array_map(function ($elem) use ($header) {
-				return $elem[$header];
-			}, $result)));
-		}
-
 		$data['fieldMaps'] = array_flip($fieldMaps ?? []);
-		$data['filters'] = $filters;
 		$data['page'] = $page;
 
-		$data['template'] = $page['template'];
+		foreach ($charts as $chart) {
+			$grid = json_decode($chart['grid'], 1);
+			unset($grid['content']);
+			$data['charts'][] = [
+				"id" => $chart['id'],
+				"type" => $chart['chart_type'],
+				"slice" => json_decode($chart['slice'], 1),
+				"grid" => $grid,
+				"options" => json_decode($chart['chart_options'], 1)
+			];
+		}
 
-		$pivotting = @$this->makingChart($charts, $resultFiltered);
-		$data['charts'] = $pivotting[1];
-		echo BaseResponse::ok("Success", $data);
-		exit;
+		$this->set("styles", [
+			"css/folder.css"
+		])
+			->set("vendorStyles", [
+				"vendor/pivottable/pivot.css",
+				"vendor/datatables/datatables.css",
+				"vendor/gridstack/gridstack.css",
+				"vendor/select2/select2.css",
+			])
+			->set("vendorScripts", [
+				"vendor/datatables/datatables.js",
+				"vendor/pivottable/pivottable.js",
+				"vendor/gridstack/gridstack.js",
+				"vendor/chart.js/chart.umd.js",
+				"vendor/select2/select2.js",
+			])
+			->set("vendorScripts", [
+				"js/functions.js",
+				"js/charts/chart-js.js"
+			])
+			->set("scripts", [
+				// "js/chart-visual.js",
+				"js/functions.js",
+				// "js/dashboard-create.js",
+			]);
+
+		$this->set("vendorScripts", [
+			"vendor/codemirror/codemirror.js",
+			"vendor/codemirror/autorefresh.js",
+			"vendor/codemirror/match-brackets.js",
+			"vendor/codemirror/js/javascript.js",
+		]);
+
+		$this->page("dashboards/index", $data);
 	}
 
 	public function cross_filter($pageId)
