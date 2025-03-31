@@ -1,23 +1,28 @@
 <?php
 require_once 'common/CRUD.php';
 
-class Page_model extends CRUD {
+class Page_model extends CRUD
+{
 
     protected $table = 'pages';
 
-    public function list() {
-        return $this->db->select("p.*, r.name report_name")->from($this->table . " p")
-                            ->join("reports r", "r.id = report_id")
-                            ->order_by("p.id", "desc")
-                            ->get()
-                            ->result_array();
+    public function list()
+    {
+        return $this->db->select("p.*, r.name report_name, j.date last_file")->from($this->table . " p")
+            ->join("reports r", "r.id = p.report_id")
+            ->join("(select report_id, max(date) date, max(file_id) file_id, max(query_id) query_id, max(id) id from jobs group by report_id order by report_id desc) j", "j.report_id = p.report_id")
+            ->order_by("p.id", "desc")
+            ->get()
+            ->result_array();
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->db->query("
             SELECT 
                 p.id,p.access,p.title page_title, p.access, p.template, j.date,r.name,r.id report_id,r.report_table, q.sql,q.params,q.db,q.unique_field,q.fields_map,
                 j.id job_id,
+                j.date last_file,
                 f.id file_id, f.name file, location, f.created_at file_created_at, f.folder_id
             FROM {$this->table} p
             JOIN (select report_id, max(date) date, max(file_id) file_id, max(query_id) query_id, max(id) id from jobs group by report_id order by report_id desc) j ON j.report_id=p.report_id
@@ -27,6 +32,4 @@ class Page_model extends CRUD {
             WHERE p.id = ?
         ", [$id])->row_array();
     }
-
 }
-

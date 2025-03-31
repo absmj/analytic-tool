@@ -377,7 +377,7 @@ const formReport = {
 			paramsForm.append(`
       <div class="mb-3">
         <label for="${p}" class="col-form-label">${p}:</label>
-        <input required name="params[]" type="text" class="form-control" id="${p}">
+        <input required name="params[${p}]" type="text" class="form-control" id="${p}">
       </div>`)
 		);
 	},
@@ -398,22 +398,33 @@ const formReport = {
 			)
 		)
 			throw new Error(
-				"Hesabatın SQL sorğusu düzgün deyil. Bazadan yalnız məlumatların oxunması mümkündür!"
+				window.locale?.form?.report?.["valid-sql"] ||
+					"Hesabatın SQL sorğusu düzgün deyil. Bazadan yalnız məlumatların oxunması mümkündür!"
 			);
 
 		if (!this.data.report_folder)
-			throw new Error("Hesabat qovluğu seçilməyib!");
+			throw new Error(
+				window.locale?.form?.report?.["valid-folder"] ||
+					"Hesabat qovluğu seçilməyib!"
+			);
 
 		if (!this.data.database)
-			throw new Error("SQL-in işləyəcəyi baza seçilməyib!");
+			throw new Error(
+				window.locale?.form?.report?.["valid-db"] ||
+					"SQL-in işləyəcəyi baza seçilməyib!"
+			);
 
 		if (!this.data.cron_job)
 			throw new Error(
-				"İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!"
+				window.locale?.form?.report?.["valid-freq"] ||
+					"İşləmə tezliyi Fərdi olaraq seçilibsə, CRON job seçilməlidir!"
 			);
 
 		if (!this.data.report_table)
-			throw new Error("Hesabatın cədvəl adı daxil edilməyib");
+			throw new Error(
+				window.locale?.form?.report?.["valid-table-name"] ||
+					"Hesabatın cədvəl adı daxil edilməyib"
+			);
 
 		return true;
 	},
@@ -442,24 +453,28 @@ const formReport = {
 
 			if (!forms.report.checkValidity()) {
 				forms.report.reportValidity();
-				throw new Error("Form elementləri düzgün doldurulmayıb");
+				throw new Error(
+					window.locale?.["form-valid"] ||
+						"Form elementləri düzgün doldurulmayıb"
+				);
 			}
+			const step = $(e).attr("data-step");
 
-			if (this.params.size > 0 && !queryFormModal._isShown) {
+			if (this.params.size > 0 && !queryFormModal._isShown && step == 0) {
 				queryFormModal.show();
 				return;
 			}
 
 			if (!forms.query.checkValidity()) {
 				forms.query.reportValidity();
-				throw new Error("SQL parametrləri daxil edilməyib");
+				throw new Error(
+					window.locale?.["form-valid-sql-params"] ||
+						"SQL parametrləri daxil edilməyib"
+				);
 			}
 
 			if (queryFormModal._isShown) queryFormModal.hide();
 
-			const step = $(e).attr("data-step");
-			const isEdit = $(e).attr("is-edit") == 1;
-			console.log(this.data);
 			$(e).prop("disabled", true);
 			uiInterface.loading = true;
 
@@ -471,14 +486,15 @@ const formReport = {
 			if (step == 0) {
 				this.generateTable(response.data);
 				$(e).attr("data-step", 1);
+				$("#next").attr("data-step", 1);
 				$("#stepone").addClass("d-none");
 				$("#steptwo").removeClass("d-none");
 			} else {
 				alert(response.message);
-				// window.location.href = BASE_URL + 'reports'
+				window.location.href = BASE_URL + "reports";
 			}
 		} catch (e) {
-			uiInterface.error = e.message;
+			uiInterface.error = e?.responseJSON?.message || e.message;
 		} finally {
 			$(e).prop("disabled", false);
 			uiInterface.loading = false;
@@ -488,15 +504,21 @@ const formReport = {
 	generateTable(data) {
 		table.innerHTML = `
     <h5>Sütunlar</h5>
-    <p class='text-muted'>Filterasiya zamanı tətbiq ediləcək sütunlar</p>
-    <small>Hər bir sütunun solundakı seçimi etməklə, unikal sütunu təyin edə bilərsiniz. Bu sütun cədvəldə data-ların yenilənməsi üçün təyin edilib.</small>
+    <p class='text-muted'>${
+			window.locale?.["form.report.save-report-filter"] ||
+			"Filterasiya zamanı tətbiq ediləcək sütunlar"
+		}</p>
+    <small>${
+			window.locale?.["form.report.save-report-filter-desc"] ||
+			"Hər bir sütunun solundakı seçimi etməklə, unikal sütunu təyin edə bilərsiniz. Bu sütun cədvəldə data-ların yenilənməsi üçün təyin edilib."
+		}</small>
     <hr>
     <div class="row">
     ${data
 			.map(
 				(d) => `<div class="col-md-3">
                         <div class="form-check position-relative">
-                            <button type="button" onclick="this.parentNode.remove()" style="right:0" class="position-absolute btn btn-sm btn-danger">Sil</button>
+                            <button type="button" onclick="this.parentNode.remove()" style="right:0" class="position-absolute btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                             <input type="radio" class="form-check-input" name="unique" value="${d}">
                             <input data-field="${d}" value="${d}" type="text" class="form-control form-check-label" data-target="fields" required>
                         </div>
@@ -513,8 +535,11 @@ const formReport = {
 			this.sql = editor.getValue();
 
 			const params = /{@(.*?)@}/gims;
+
 			if (params.test(this.data.sql)) {
 				this.params = this.data.sql.match(/{@(.*?)@}/gims);
+			} else {
+				this.params = [];
 			}
 		});
 	},

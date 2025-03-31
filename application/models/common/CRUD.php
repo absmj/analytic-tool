@@ -21,9 +21,9 @@ class CRUD extends CI_Model
         return $this->db->where_in($field, $argument)->get($this->table)->row_array();
     }
 
-    protected function findBy($field, $argument)
+    protected function findBy($field, $argument, $orderBy = ['id', 'asc'])
     {
-        return $this->db->where_in($field, $argument)->get($this->table)->result_array();
+        return $this->db->where_in($field, $argument)->order_by(...$orderBy)->get($this->table)->result_array();
     }
 
     protected function filterBy($field, $argument)

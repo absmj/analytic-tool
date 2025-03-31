@@ -33,6 +33,16 @@ class Pages extends BaseController
 		$this->load->model("Chart_model", "chart");
 		$this->load->model("Report_model", "report");
 		$page = $this->page->get($id);
+		$data['access'] = json_decode($page['access'] ?? '[]', 1);
+
+		if (isset($data['access']['ldap']) && !empty($data['access']['ldap']) && !userHasAccess($data['access']['ldap'])) {
+			show_error("Access denied", 403);
+		}
+
+		foreach ($data['access']['special'] ?? [] as $key => &$value) {
+			$value = $_SESSION[$key];
+		}
+
 		$report = $this->report->get($page['report_id']);
 		$fieldsMap = json_decode($report['fields_map'], 1);
 		$data['columns'] = array_values(array_filter($this->report->columns($report['report_table']), function ($item) {
@@ -40,6 +50,7 @@ class Pages extends BaseController
 		}));
 		$data['filters'] = $this->report->getFieldDistinctValues($report['report_table'], ($fieldsMap));
 		$charts = $this->chart->findByPageId($page['id']);
+
 		$data['page'] = $page;
 		$fieldMaps = json_decode($page['fields_map'], 1);
 		$data['fieldMaps'] = array_flip($fieldMaps ?? []);
@@ -90,7 +101,7 @@ class Pages extends BaseController
 			"vendor/codemirror/js/javascript.js",
 		]);
 
-		$this->page("dashboards/index", $data);
+		$this->page("dashboards/index", $data, false);
 	}
 
 	public function cross_filter($pageId)

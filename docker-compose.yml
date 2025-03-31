@@ -1,0 +1,34 @@
+version: "2"
+services:
+  webserver:
+    image: analytic-tool-con
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - $PWD:/var/www/html
+    depends_on:
+      - database
+    environment:
+      POSTGRES_DB_HOST: database
+      POSTGRES_DB_NAME: postgres
+      POSTGRES_DB_USER: postgres
+      POSTGRES_DB_PASSWORD: 2254
+      SITE_URL: http://localhost
+    networks:
+      - test
+
+  database:
+    image: postgres
+    environment:
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=2254"
+      - "POSTGRES_DB=postgres"
+    ports:
+      - "5432:5432"
+    networks:
+      - test
+
+networks:
+  test:
+    external: false

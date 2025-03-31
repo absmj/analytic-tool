@@ -1,3 +1,15 @@
+const plugin = {
+	id: "customCanvasBackgroundColor",
+	beforeDraw: (chart, args, options) => {
+		const { ctx } = chart;
+		ctx.save();
+		ctx.globalCompositeOperation = "destination-over";
+		ctx.fillStyle = options.color || "#99ffff";
+		ctx.fillRect(0, 0, chart.width, chart.height);
+		ctx.restore();
+	},
+};
+
 class ChartJs {
 	labels;
 	el;
@@ -27,6 +39,10 @@ class ChartJs {
 				type_ = "doughnut";
 				break;
 
+			case "bar-h":
+				type_ = "bar";
+				break;
+
 			default:
 				type_ = this.type;
 		}
@@ -44,19 +60,21 @@ class ChartJs {
 				dataset_ = data;
 		}
 
-		console.log(data);
-		return {
+		const options = {
 			type: type_,
 			total: data?.reduce((a, b) => a + b.total, 0),
 
 			data: {
-				// labels,
+				labels,
 				datasets: dataset_,
 			},
 			options: {
 				...this[type_ == "card" ? "line" : type_],
 				scales: isTime ? this.timeFormatScale : null,
 				plugins: {
+					customCanvasBackgroundColor: {
+						color: "white",
+					},
 					image: this.image,
 					title: this.titlePlugin,
 					legend: {
@@ -67,8 +85,13 @@ class ChartJs {
 				responsive: true,
 				maintainAspectRatio: false,
 			},
-			plugins: [],
+			plugins: [plugin],
 		};
+
+		if (this.type == "bar-h")
+			options.options.indexAxis = this.type == "bar-h" ? "y" : null;
+
+		return options;
 	}
 
 	get timeFormatScale() {

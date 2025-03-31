@@ -1,10 +1,10 @@
 <main id="main" class="main">
     <div class="pagetitle">
-        <h1><?= $this->title ?></h1>
+        <h1 data-i18n="page.title"><?= $this->title ?></h1>
         <nav>
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><?= $this->title ?></li>
-                <li id="stepDescription" class="breadcrumb-item">Siyahı</li>
+                <li class="breadcrumb-item" data-i18n="page.title"><?= $this->title ?></li>
+                <li id="stepDescription" class="breadcrumb-item" data-i18n="breadcrumb.list">Siyahı</li>
             </ol>
         </nav>
     </div><!-- End Page Title -->
@@ -18,33 +18,32 @@
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
-                            <th>ID</th>
-                            <th>Adı</th>
-                            <th>Yaranma tarixi</th>
-                            <th>Yenilənmə tarixi</th>
-                            <th>Template</th>
-                            <th>Hesabatın adı</th>
-                            <th>Əməliyyatlar</th>
+                            <th data-i18n="table.id">ID</th>
+                            <th data-i18n="table.name">Adı</th>
+                            <th data-i18n="table.created">Yaranma tarixi</th>
+                            <th data-i18n="table.updated">Yenilənmə tarixi</th>
+                            <th data-i18n="table.report">Hesabatın adı</th>
+                            <th data-i18n="table.last_exec">Sonuncu icra tarixi</th>
+                            <th data-i18n="table.actions">Əməliyyatlar</th>
                         </thead>
                         <tbody>
-                            <?php foreach($pages as $page): ?>
+                            <?php foreach ($pages as $page): ?>
                                 <tr>
-                                    <td><?=$page['id']?></td>
-                                    <td><?=$page['title']?></td>
-                                    <td><?=$page['created_at']?></td>
-                                    <td><?=$page['updated_at']?></td>
-                                    <td><?=$page['template']?></td>
-                                    <td><?=$page['report_name']?></td>
+                                    <td><?= $page['id'] ?></td>
+                                    <td><?= $page['title'] ?></td>
+                                    <td><?= $page['created_at'] ?></td>
+                                    <td><?= $page['updated_at'] ?></td>
+                                    <td><?= $page['report_name'] ?></td>
+                                    <td><?= $page['last_file'] ?></td>
                                     <td>
                                         <div class="d-flex justify-content-between">
-                                            <a href="<?=BASE_URL_REQUEST?>page/<?=$page['id']?>" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i></a>
-                                            <button class="btn btn-sm btn-success"><i class="bi bi-play"></i></button>
-                                            <!-- <button class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></button> -->
-                                            <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                            <a href="<?= BASE_URL_REQUEST ?>page/<?= $page['id'] ?>" class="btn btn-sm btn-primary" data-i18n="button.view"><i class="bi bi-eye"></i></a>
+                                            <a href="<?= BASE_URL_REQUEST ?>page/<?= $page['id'] ?>/edit" class="btn btn-sm btn-warning" data-i18n="button.edit"><i class="bi bi-pencil"></i></a>
+                                            <button data-id="<?= $page['id'] ?>" class="btn btn-sm btn-danger remove-page" data-i18n="button.delete"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
-                            <?php endforeach?>
+                            <?php endforeach ?>
                         </tbody>
                     </table>
                 </div>
@@ -52,3 +51,13 @@
         </div>
     </section>
 </main>
+
+<script>
+    $(".remove-page").click(function() {
+        if (!confirm(window?.locale?.confirm || "Əminsinizmi?")) return;
+        dashboardDelete({
+            id: $(this).data("id"),
+            onSuccess: () => $(this).closest("tr").remove()
+        })
+    })
+</script>

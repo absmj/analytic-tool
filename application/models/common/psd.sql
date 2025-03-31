@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.psd_analytic(tname text, row_id text, col_id text, val text, aggr text, chart_id text default null, filters json DEFAULT NULL::json, exact_filters json DEFAULT NULL::json)
+CREATE OR REPLACE FUNCTION public.psd_analytic(tname text, row_id text, col_id text, val text, aggr text, chart_id text DEFAULT NULL::text, filters json DEFAULT NULL::json, exact_filters json DEFAULT NULL::json)
  RETURNS TABLE(result json)
  LANGUAGE plpgsql
 AS $function$
@@ -13,19 +13,19 @@ DECLARE
     values TEXT;
     filter_condition TEXT;
 BEGIN
-    -- 1. Count total unique rows
+    -- count total unique rows
     EXECUTE FORMAT('SELECT COUNT(DISTINCT %I) FROM %I', row_id, tname) INTO row_count;
    
    IF filters IS NOT NULL THEN
         FOR key, values IN 
             SELECT * FROM json_each_text(filters) 
         LOOP
-            -- Convert values into a comma-separated list
-            filter_condition := FORMAT('%I IN (%s)', key, 
+
+            filter_condition := FORMAT('%I::text IN (%s)', key, 
                 (SELECT string_agg(quote_literal(value), ', ') FROM json_array_elements_text(filters->key))
             );
 
-            -- Append condition to filter query
+
             IF filter_query <> '' THEN
                 filter_query := filter_query || ' AND ';
             END IF;
@@ -37,12 +37,12 @@ BEGIN
         FOR key, values IN 
             SELECT * FROM json_each_text(exact_filters) 
         LOOP
-            -- Convert values into a comma-separated list
-            filter_condition := FORMAT('%I NOT IN (%s)', key, 
+
+            filter_condition := FORMAT('%I::text NOT IN (%s)', key, 
                 (SELECT string_agg(quote_literal(value), ', ') FROM json_array_elements_text(exact_filters->key))
             );
 
-            -- Append condition to filter query
+
             IF filter_query <> '' THEN
                 filter_query := filter_query || ' AND ';
             END IF;
@@ -58,9 +58,9 @@ BEGIN
    
    raise notice 'filter %s', filter_query;
 
-    -- 2. Process data in batches of 1600 rows
+    -- batches of 1600 rows
     WHILE row_start <= row_count LOOP
-        -- Query to aggregate JSON per row
+        -- aggregate JSON per row
         main_query := FORMAT(
             'WITH row_data AS (
                 SELECT roww AS row_id, jsonb_object_agg(%I, result.val) AS data, COALESCE(''%s'', ''result'') as chart_id
@@ -80,17 +80,15 @@ BEGIN
        
 		RAISE NOTICE 'Query: %', main_query;
 
-        -- Execute query and get batch result
         EXECUTE main_query INTO batch_result;
 
-        -- Merge JSON batches safely
+
         merged_json := merged_json || COALESCE(batch_result, '[]'::JSONB);
 
-        -- Move to next batch
         row_start := row_start + 1600;
     END LOOP;
 
-    -- Return final JSON
+    -- final JSON
     RETURN QUERY SELECT merged_json::JSON;
 END;
 $function$

@@ -13,6 +13,7 @@ class Report_model extends CRUD
                     q.id query_id, 
                     q.sql,
                     q.db,
+                    q.params,
                     q.created_at query_created, 
                     c.job,
                     c.title cron,
@@ -72,17 +73,6 @@ class Report_model extends CRUD
             $this->load->database($database);
             $sql = preg_replace("/\{@.*?@\}/muis", "?", $sql);
             $result = $this->db->query($sql, $params)->result_array();
-            foreach ($result as &$r) {
-                foreach ($r as $rk => $v) {
-                    if (preg_match("/date$/i", $v)) {
-                        $timestamp = strtotime($v);
-                        $r[$rk . ".Date"] = date('d', $timestamp);
-                        $r[$rk . ".Month"] = date('m', $timestamp);
-                        $r[$rk . ".Year"] = date('Y', $timestamp);
-                        $r[$rk . ".Timestamp"] = $timestamp;
-                    }
-                }
-            }
             return $result;
         } catch (Exception $e) {
             throw new Exception($e);
@@ -148,14 +138,6 @@ class Report_model extends CRUD
     public function createOrInsertOrUpdateReport($database, $table, $unique, $query, $params = [])
     {
         $tableExists = true;
-        $this->load->database($database);
-        preg_match_all("/(\{@.*?@\})/muis", $query, $matches);
-
-        foreach ($matches[1] ?? [] as $index => $match) {
-            if (isset($params[$index])) {
-                $query = preg_replace("/" . $match . "./muis", $params[$index], $query);
-            }
-        }
         $this->db->trans_start();
         if (!$this->db->table_exists($table)) {
             $tableExists = false;
@@ -168,12 +150,13 @@ class Report_model extends CRUD
 
 
         if ($tableExists) {
-            $queryResult = $this->db->query($query)->result_array();
+            $queryResult = $this->run($database, $query, $params);
             $statements = [];
             $insertBatch = [];
             if ($unique) {
                 $queryUnique = array_column($queryResult, $unique);
-                $existData = $this->db->select("*")->from($table)->where_in($unique, $queryUnique)->get()->result_array();
+                $existData = $this->db->query("select * from {$table} where {$unique} in ?", [$queryUnique])->result_array();
+                // $existData = $this->db->select("*")->from($table)->where_in($unique, $queryUnique)->get();
                 $existDataUnique = array_column($existData, $unique);
 
                 $keys = array_keys($queryResult[0]);
@@ -204,8 +187,10 @@ class Report_model extends CRUD
                         $insertBatch[] = $data;
                     }
                 }
+
+
                 if (count($statements) > 0) {
-                    $this->db->query(implode(";", $statements));
+                    pg_query($this->db->conn_id, implode(";", $statements));
                 }
             }
 

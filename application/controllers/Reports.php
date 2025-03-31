@@ -37,7 +37,6 @@ class Reports extends BaseController
 		if (isPostRequest()) {
 			try {
 				$data = $this->report->run(post('db'), post('sql'), post('params') ?? []);
-
 				if (post("step") == 0) {
 					if (empty($data)) {
 						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
@@ -87,10 +86,10 @@ class Reports extends BaseController
 		if (isPostRequest()) {
 			try {
 				$data = $this->report->run(post('db'), post('sql'), post('params') ?? []);
-
+				// dd($data);
 				if (post("step") == 0) {
 					if (empty($data)) {
-						echo BaseResponse::ok("Hesabatın nəticəsi boşdur", $data, StatusCodes::HTTP_NO_CONTENT);
+						throw new Exception("Hesabatın nəticəsi boşdur", 404);
 					} else {
 						$keys = array_keys($data[0]);
 						$filteredKeys = array_values(array_filter($keys, function ($k) {
@@ -99,14 +98,15 @@ class Reports extends BaseController
 						echo BaseResponse::ok("Hesabatın nəticəsi uğurludur", $filteredKeys);
 					}
 				} else {
-					$this->saveReport($data, null, false, false);
+					$this->saveReport($data, $id, false, false);
 				}
 			} catch (Exception $e) {
-				echo BaseResponse::error("Hesabatın icra edilməsi zamanı xəta baş verdi! " . $e->getMessage(), $e->getCode());
+				echo BaseResponse::error($e->getMessage(), $e->getCode());
 			} finally {
 				exit;
 			}
 		}
+		$data['isEdit'] = true;
 
 		$this->set("vendorScripts", [
 			"vendor/codemirror/codemirror.js",
@@ -142,22 +142,23 @@ class Reports extends BaseController
 	public function run($report_id, $isCron = false)
 	{
 		$report = $this->report->get($report_id);
-
-		$this->report->run($report['db'], $report['sql'], $report['params'] != 'null' ? json_decode($report['params'], 1) : []);
+		$params = json_decode($report['params'], 1);
+		$params = array_intersect($params, array_change_key_case($_GET));
+		$this->report->run($report['db'], $report['sql'], $params ?? []);
 
 		$job = [
 			"query_id" => $report['query_id'],
 			"report_id" => $report['id'],
 			"is_cron" => $isCron
 		];
-		$this->job->insert($job);
-		echo BaseResponse::ok("Success");
+		$job = $this->job->insert($job);
+		$job = $this->job->get($job);
+		echo BaseResponse::ok("Success", $job);
 	}
 
 
 	public function delete($report_id)
 	{
-		$reportData = $this->report->get($report_id);
 		$data = $this->report->update($report_id, ['is_deleted' => true]);
 		echo BaseResponse::ok("Hesabat silindi", $data);
 	}
@@ -190,6 +191,8 @@ class Reports extends BaseController
 					$cronJob = post('cron_frequency');
 				}
 
+
+
 				$query = $this->query->insert([
 					"sql" => post("sql"),
 					"db" => post("database"),
@@ -203,7 +206,7 @@ class Reports extends BaseController
 					"name" => post("name"),
 					"query_id" => $query,
 					"folder_id" => post("report_folder"),
-					"base" => $base ?? 0,
+					"base" => $base ?? 0
 				];
 
 				if (!$toFile) {
@@ -211,10 +214,11 @@ class Reports extends BaseController
 				}
 
 				if ($base) {
-					$this->report->update($base, $reportInsert);
-				} else {
-					$report = $this->report->insert($reportInsert);
+					$this->report->update($base, array_merge($reportInsert, ['is_deleted' => true]));
+					$report = $base;
 				}
+
+				$report = $this->report->insert($reportInsert);
 
 				$job = [
 					"query_id" => $query,
@@ -260,7 +264,7 @@ class Reports extends BaseController
 						throw new Exception($csv . " adlı fayl yaradıla bilmədi. İcazə parametlərinə nəzər yetirin.", 403);
 					}
 				} else {
-					$this->report->createOrInsertOrUpdateReport(post('db'), post('report_table'), post('unique'), post("sql"));
+					$this->report->createOrInsertOrUpdateReport(post('db'), post('report_table'), post('unique'), post("sql"), post('params'));
 				}
 
 				$this->job->insert($job);

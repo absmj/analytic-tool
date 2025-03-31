@@ -49,25 +49,17 @@ defined('BASEPATH') or exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
-
+$route['login'] = "user/login";
+$route['logout'] = "user/logout";
 $route['default_controller'] = 'pages/index';
 $route['folder/(:num)/files'] = "files/index/$1";
 $route['report/(:num)'] = "reports/get/$1";
 $route['report/(:num)/delete'] = "reports/delete/$1";
 $route['report/(:num)/edit'] = "reports/edit/$1";
 // $route['chart/(:any)'] = "chart/index/$1";
-
 $route['page/(:num)'] = "pages/get/$1";
 $route['page/(:num)/delete'] = "pages/delete/$1";
-$route['page/(:num)/edit'] = "pages/edit/$1";
+$route['page/(:num)/edit'] = "dashboard/update/$1";
 
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
-
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: *');
-header("Access-Control-Allow-Headers: *");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Origin: http://localhost:5173");
-session_start();

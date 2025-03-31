@@ -58,7 +58,7 @@ $autoload['packages'] = array();
 |
 |	$autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array('database', 'Request');
+$autoload['libraries'] = array('database', 'Request', 'Session');
 
 /*
 | -------------------------------------------------------------------
@@ -134,4 +134,4 @@ $autoload['language'] = array();
 */
 $autoload['model'] = array();
 
-require FCPATH . "/vendor/autoload.php";
+// require FCPATH . "/vendor/autoload.php";

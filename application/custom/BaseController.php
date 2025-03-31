@@ -1,5 +1,5 @@
 <?php
-
+require_once APPPATH . "custom/BaseException.php";
 class BaseController extends CI_Controller
 {
     public $title;
@@ -11,6 +11,22 @@ class BaseController extends CI_Controller
 
     function __construct()
     {
+        parent::__construct();
+
+        if (!is_logged() && !in_array('login', $this->uri->segments)) {
+            session_destroy();
+            redirect("/login");
+            exit;
+        } elseif (is_logged() && in_array('login', $this->uri->segments)) {
+            redirect("/");
+            exit;
+        }
+
+        if (isPostRequest()) {
+            set_error_handler([BaseException::class, 'api_error_handler']);
+            set_exception_handler([BaseException::class, 'api_exception_handler']);
+        }
+
         $this->title = "Hesabatların idarə edilməsi sistemi";
 
         // Vendor Styles
@@ -21,7 +37,7 @@ class BaseController extends CI_Controller
         $this->vendorStyles[] = BASE_PATH . "assets/vendor/quill/quill.bubble.css";
         $this->vendorStyles[] = BASE_PATH . "assets/vendor/remixicon/remixicon.css";
         $this->vendorStyles[] = BASE_PATH . "assets/vendor/simple-datatables/style.css";
-
+        $this->vendorStyles[] = BASE_PATH . "assets/vendor/toastify/toastify.css";
         // Vendor Scripts
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/jquery/jquery.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/jquery/jquery-ui.min.js";
@@ -34,11 +50,15 @@ class BaseController extends CI_Controller
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/tinymce/tinymce.min.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/php-email-form/validate.js";
         $this->vendorScripts[] = BASE_PATH . "assets/vendor/lodash/lodash.js";
+        $this->vendorScripts[] = BASE_PATH . "assets/vendor/axios/axios.js";
+        $this->vendorScripts[] = BASE_PATH . "assets/vendor/toastify/toastify.js";
+        $this->vendorScripts[] = BASE_PATH . "assets/js/language.js";
         $this->styles[] = BASE_PATH . "assets/css/style.css";
+        $this->styles[] = BASE_PATH . "assets/css/cat.css";
+        $this->scripts[] = BASE_PATH . "assets/js/app.js";
+        $this->scripts[] = BASE_PATH . "assets/js/fetch.js";
         $this->scripts[] = BASE_PATH . "assets/js/main.js";
         $this->scripts[] = BASE_PATH . "assets/js/ui.js";
-
-        parent::__construct();
     }
 
     public function page($view, $data = [], $sidebar = true, $json = false)
@@ -90,6 +110,6 @@ class BaseController extends CI_Controller
 
     private function defaultView()
     {
-        return (get_class_vars($this::class)['view'] ?? strtolower(get_class($this))) . "/";
+        return get_class_vars(get_class($this))['view']  . "/";
     }
 }

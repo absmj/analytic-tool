@@ -22,6 +22,7 @@ if (!function_exists("active")) {
     function active($href)
     {
         $url = (uri_string());
+        if (empty($url)) $url = 'pages';
         return preg_match("/$href/mui", $url) ? 'active' : 'collapsed';
     }
 }
@@ -258,4 +259,31 @@ if (!function_exists('array_is_list')) {
         }
         return array_keys($arr) === range(0, count($arr) - 1);
     }
+}
+
+if (!function_exists('is_logged')) {
+    function is_logged()
+    {
+        return isset($_SESSION['username']) && !empty($_SESSION['username']);
+    }
+}
+
+if (!function_exists('userHasAccess')) {
+    function userHasAccess($groups)
+    {
+        if (is_logged()) {
+            if (is_array($groups)) {
+
+                foreach ($groups as $group) {
+                    if (in_array($group, $_SESSION['groups'])) return true;
+                }
+            } else return in_array($groups, $_SESSION['groups']);
+        }
+        return false;
+    }
+}
+
+function api_exception_handler($exception)
+{
+    return api_error($exception->getMessage(), $exception->getCode(), 500);
 }

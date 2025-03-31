@@ -6,7 +6,7 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="index.html">Səhifələr</a></li>
                     <li class="breadcrumb-item"><?= $this->title ?></li>
-                    <li class="breadcrumb-item step-description"></li>
+                    <li class="breadcrumb-item step-description"><?= $page['page_title'] ?? '' ?></li>
                 </ol>
             </nav>
         </div><!-- End Page Title -->
@@ -94,7 +94,9 @@
                         <h6>Chart type</h6>
                         <div class="d-flex justify-content-center flex-wrap" role="group" aria-label="Basic radio toggle button group">
                             <div chart-type="line" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-graph-up"></i></div>
+                            <div chart-type="area" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-graph-up-arrow"></i></div>
                             <div chart-type="bar" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-bar-chart-fill"></i></div>
+                            <div chart-type="bar-h" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-bar-chart-steps"></i></div>
                             <div chart-type="pie" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-pie-chart-fill"></i></div>
                             <div chart-type="donut" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-pie-chart"></i></div>
                             <div chart-type="radar" data-selected="false" class="btn btn-outline-primary mx-2 mt-1"><i class="bi bi-radar"></i></div>
@@ -104,14 +106,15 @@
                             <nav>
                                 <div class="nav nav-tabs" id="nav-tab" role="tablist">
                                     <button class="nav-link active" id="nav-Slice-tab" data-bs-toggle="tab" data-bs-target="#nav-Slice" type="button" role="tab" aria-controls="nav-Slice" aria-selected="true">Slice</button>
-                                    <button class="nav-link" id="nav-Options-tab" data-bs-toggle="tab" data-bs-target="#nav-Options" type="button" role="tab" aria-controls="nav-Options" aria-selected="false">Options</button>
-                                    <button class="nav-link disabled" id="nav-Dataset-tab" data-bs-toggle="tab" data-bs-target="#nav-Dataset" type="button" role="tab" aria-controls="nav-Dataset" aria-selected="false">Dataset</button>
+                                    <button class="nav-link" id="nav-Options-tab" data-bs-toggle="tab" data-bs-target="#nav-Options" type="button" role="tab" aria-controls="nav-Options" aria-selected="false">Playground</button>
+                                    <!-- <button class="nav-link disabled" id="nav-Dataset-tab" data-bs-toggle="tab" data-bs-target="#nav-Dataset" type="button" role="tab" aria-controls="nav-Dataset" aria-selected="false">Dataset</button> -->
+                                    <button class="nav-link" id="nav-options-json-tab" data-bs-toggle="tab" data-bs-target="#nav-options-json" type="button" role="tab" aria-controls="nav-options-json" aria-selected="false">JSON</button>
                                 </div>
                             </nav>
                             <div class="tab-content" id="nav-tabContent">
                                 <div class="chart-interface tab-pane fade show active" role="tabpanel" id="nav-Slice" aria-labelledby="nav-Slice-tab">
                                     <h5>Slice</h5>
-                                    <form onchange="handleForm(this)" class="row">
+                                    <form id="slice-form" onchange="handleForm(this)" class="row">
                                         <input type="hidden" name="table" value="<?= $report['report_table'] ?>">
                                         <div class="col-12">
                                             <label for="validationDefault04" class="form-label d-flex justify-content-between">Row <i class="bi bi-question-circle-fill text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom" data-bs-title="SQL sorğunun icra ediləcəyi bazanı seçin."></i></label>
@@ -143,14 +146,14 @@
                                                 <div class="col-6">
                                                     <hr>
                                                     <label for="validationDefault04" class="form-label d-flex justify-content-between">Field</label>
-                                                    <select name="slice.values[0].field" class="form-select" required>
+                                                    <select name="slice.values[0].field" class="form-select value-select" required>
                                                         <option value="">Choose...</option>
                                                         <?php foreach ($columns as $col) : ?>
                                                             <option data-type="<?= $col['data_type'] ?>" value="<?= $col['column_name'] ?>"><?= $col['column_name'] ?></option>
                                                         <?php endforeach ?>
                                                     </select>
                                                 </div>
-                                                <div class="col-6">
+                                                <div class="col-6 d-none">
                                                     <hr>
                                                     <label for="validationDefault04" class="form-label d-flex justify-content-between">Aggregate</label>
                                                     <select name="slice.values[0].aggregation" class="form-select" required>
@@ -198,11 +201,16 @@
                                                     General
                                                 </button>
                                             </h2>
-                                            <div id="general" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                                            <div id="general" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
                                                 <div class="accordion-body">
                                                     <div class="row">
                                                         <div class="col-12">
-                                                            <label>Display</label>
+                                                            <label>BG color</label>
+                                                            <input type="color" class="form-control form-control-color" name="plugins.customCanvasBackgroundColor.color">
+
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <label>Title</label>
                                                             <select class="form-select" name="plugins.title.display">
                                                                 <option value="true">Show</option>
                                                                 <option value="false">Hide</option>
@@ -232,10 +240,10 @@
                                                     <hr>
                                                     <div class="row">
                                                         <div class="col-12">
-                                                            <label>Display</label>
+                                                            <label>Subtitle</label>
                                                             <select class="form-select" name="plugins.subtitle.display">
                                                                 <option value="true">Show</option>
-                                                                <option value="false">Hide</option>
+                                                                <option selected value="false">Hide</option>
                                                             </select>
                                                         </div>
                                                         <div class="col-9">
@@ -391,6 +399,7 @@
                                                 <div class="accordion-body">
                                                     <!-- X-Axis -->
                                                     <h6>X-Axis</h6>
+                                                    <hr>
                                                     <div class="row mb-2">
                                                         <div class="col-8">
                                                             <select class="form-select" name="scales.x.display">
@@ -403,8 +412,19 @@
                                                         </div>
                                                     </div>
 
+                                                    <div class="row mb-2">
+                                                        <div class="col-12">
+                                                            <label for="">Stacked</label>
+                                                            <select class="form-select" name="scales.x.stacked">
+                                                                <option value="true">True</option>
+                                                                <option selected value="false">False</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
                                                     <!-- Y-Axis -->
                                                     <h6>Y-Axis</h6>
+                                                    <hr>
                                                     <div class="row mb-2">
                                                         <div class="col-8">
                                                             <select class="form-select" name="scales.y.display">
@@ -416,6 +436,15 @@
                                                             <input type="color" class="form-control form-control-color" name="scales.y.grid.color">
                                                         </div>
                                                     </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col-12">
+                                                            <label for="">Stacked</label>
+                                                            <select class="form-select" name="scales.y.stacked">
+                                                                <option value="true">True</option>
+                                                                <option selected value="false">False</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -423,6 +452,13 @@
                                 </form>
                                 <div class="tab-pane fade" id="nav-Dataset">
 
+                                </div>
+                                <div class="tab-pade fade" id="nav-options-json">
+                                    <h6>Chart.js options [JSON]</h6>
+                                    <hr>
+                                    <textarea id="chart-js-options" id="" cols="30" rows="10"></textarea>
+                                    <hr>
+                                    <button id="save-from-json" class="btn btn-sm btn-warning pull-right">Save</button>
                                 </div>
                             </div>
                         </div>
@@ -435,7 +471,7 @@
 </main>
 
 <!-- Bootstrap Modal -->
-<div class="modal fade" id="dashboardModal" tabindex="-1" aria-labelledby="dashboardModalLabel" aria-hidden="true">
+<div tabindex="-1" class="modal fade" id="dashboardModal" aria-labelledby="dashboardModalLabel" aria-hidden="true">
     <div class="modal-dialog" style="max-width: 600px;">
         <div class="modal-content">
             <div class="modal-header">
@@ -443,52 +479,47 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="dashboardSettings" method="POST">
-                    <div class="mb-3">
+                <form id="dashboardSettings" class="row" method="POST">
+                    <div class="col-12 mb-3">
                         <label for="dashboardName" class="form-label">Dashboard adı</label>
-                        <input type="text" class="form-control" id="dashboardName" name="dashboardName" placeholder="Dashboard adı" value="<?php echo htmlspecialchars($title ?? ''); ?>">
+                        <input required type="text" class="form-control" id="dashboardName" name="dashboardName" placeholder="Dashboard adı" value="<?php echo htmlspecialchars($page['page_title'] ?? ''); ?>">
                     </div>
 
-                    <div class="mb-3">
+                    <div class="col-12 mb-3">
                         <label for="ldapAccess" class="form-label">LDAP icazələr</label>
-                        <select class="form-select" id="ldapAccess" name="ldapAccess">
+                        <select multiple class="form-select select2" id="ldapAccess" name="ldapAccess">
+                            <option value="" disabled>---</option>
                             <?php foreach ($groups ?? [] as $group): ?>
-                                <option value="<?php echo $group['group_id']; ?>" <?php echo ($ldapAccess == $group['group_id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($group['group_name']); ?>
+                                <option <?php echo in_array($group, $access['ldap'] ?? []) ? 'selected' : ''; ?> value="<?php echo $group; ?>">
+                                    <?php echo $group; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 col-6">
                         <label class="form-label">Məlumatların əks olunması şərtləri</label>
-                        <select class="form-select" id="specAccess" name="specAccess">
+                        <select class="form-select" id="specAccessKey">
+                            <option selected value="">---</option>
                             <?php foreach ($columns as $column): ?>
-                                <option value="<?php echo htmlspecialchars($column['column_name']); ?>" <?php echo ($specAccess ?? null == $column['column_name']) ? 'selected' : ''; ?>>
+                                <option value="<?php echo htmlspecialchars($column['column_name']); ?>" <?php echo in_array($column['column_name'], array_keys($access['special'] ?? [])) ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($column['column_name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <div class="row">
-                        <?php foreach ($specAccess ?? [] as $index => $access): ?>
-                            <div class="col-6">
-                                <div class="mb-3">
-                                    <label for="special[<?php echo htmlspecialchars($access); ?>]" class="form-label">
-                                        [<?php echo htmlspecialchars($access); ?>]
-                                    </label>
-                                    <select class="form-select" name="<?php echo htmlspecialchars($access); ?>" id="special[<?php echo htmlspecialchars($access); ?>]">
-                                        <option value=""></option>
-                                        <?php foreach (array_keys($uiContext[0]['user'] ?? []) as $key): ?>
-                                            <option value="<?php echo htmlspecialchars($key); ?>" <?php echo ($specAccessVal[$index] ?? '') == $key ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($key); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="mb-3 col-6">
+                        <label class="form-label">Equal to</label>
+                        <select class="form-select" id="specAccessVal">
+                            <option selected value="">---</option>
+                            <?php foreach ($_SESSION as $key => $session): ?>
+                                <?php if (!is_string($session)) continue; ?>
+                                <option value="<?= $key; ?>" <?php echo (in_array($key, $access['special'] ?? [])) ? 'selected' : ''; ?>>
+                                    <?= $key; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -502,13 +533,22 @@
 
 <script>
     const reportId = <?= $report['id'] ?>;
+    const pageId = <?= $page['id'] ?? 'null' ?>;
+    const charts = <?= json_encode($charts ?? []) ?>;
+    const exactFilters = {};
+    let filters = {};
+    const crossCharts = new Set;
 
-    const chartTemplate = () => {
-        const uid = uuid();
-        return `<canvas class='chart' data-uuid="${uid}"></canvas>`;
+    let editor = null
+
+    const chartTemplate = (uid = null) => {
+        uid ??= uuid();
+        return `
+            <div style="width: 100%; height: 100%" class="position-relative">
+                <button style="position: absolute; right: 0" class="btn btn-sm btn-danger remove-chart"><i class="bi bi-trash"></i></button>
+                <canvas class='chart' data-uuid="${uid}"></canvas>
+            </div>`;
     }
-
-    const playground = new ChartJsInterface();
 
     const chartSlice = {
         slice: {
@@ -526,8 +566,10 @@
 
     var grid = GridStack.init();
     const items = {
-        charts: [{
+        charts: pageId ? charts : [{
             grid: {
+                x: 0,
+                y: 0,
                 w: 4,
                 h: 3,
                 content: chartTemplate()
@@ -571,8 +613,15 @@
             }
         },
 
-        init(grids = this.grids) {
+        init(grids = this.grids, firstLoaded = true) {
+            if (pageId) {
+                for (const chart of charts) {
+                    chart.grid.content = chartTemplate(chart?.options?.uuid || null);
+                    chart.options.uuid = chart.grid.content?.replace(/.*data-uuid=['"](.*?)['"].*/si, "$1");
+                }
+            }
             grid.load(grids);
+            firstLoaded && pageId && charts.length && initExistsCharts(charts)
         }
     }
 
@@ -598,7 +647,7 @@
                 options: null,
                 type: null
             });
-            this.init([grid]);
+            this.init([grid], false);
 
             $(".grid-stack-item-content").removeClass("active");
             $(".grid-stack-item-content").last().addClass("active").click()
@@ -614,58 +663,78 @@
             _.set(items.chart, $(this).attr("name"), $(this).val())
         })
 
+        if (!(items.chart.slice.row || items.chart.slice.column)) {
+            return;
+        }
+
         try {
             const request = await fetch(`/chart/pivot/${$('[name="table"]').val()}`, {
                 method: 'POST',
                 body: JSON.stringify(items.options)
             });
             const response = await request.json();
-
             const instance = new ChartJs();
-            const options = Object.assign({}, response?.data.charts?.[0].options)
 
             const {
                 datasets,
                 labels
-            } = options.data;
+            } = response.data[0];
+
+
             const chartElement = document.querySelector(`[data-uuid="${items.chart.grid.content?.replace(/.*data-uuid=['"](.*?)['"].*/si, "$1")}"]`);
 
-            if (items?.chart?.instance?.config?.type != items.chart.type && items.chart.instance instanceof Chart) {
+            if (!items.chart.options || (items?.chart?.instance?.config?.type != items.chart.type)) {
+                items.chart.options = instance.chart(datasets, labels, items.chart.type);
+            } else {
+                items.chart.options.plugins.push(plugin)
+                items.chart.options.data = {
+                    datasets,
+                    labels
+                }
+            }
+
+            if (items.chart.instance instanceof Chart) {
                 items.chart.instance.destroy();
                 items.chart.instance = null;
             }
 
-
-
-            if (!(items.chart.instance instanceof Chart)) {
-                items.chart.options = instance.chart(datasets, labels, items.chart.type);
-                items.chart.instance = new Chart(chartElement, items.chart.options);
-            }
-            _.set(items.chart.options, 'data', {
-                datasets,
-                labels
-            });
-
-            console.log(items.chart.options);
-            items.chart.instance.update();
-
-            // items.chart
-
+            items.chart.instance = new Chart(chartElement, items.chart.options);
         } catch (e) {
-            console.log(e)
+            console.error(e)
         }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+        editor = CodeMirror.fromTextArea(document.getElementById('chart-js-options'), {
+            mode: 'javascript',
+            indentWithTabs: true,
+            smartIndent: true,
+            lineNumbers: true,
+            matchBrackets: true,
+            autofocus: true,
+            extraKeys: {
+                "Ctrl-Space": "autocomplete"
+            },
+        });
         items.init();
-        $('.select2').select2();
+        $('.select2').select2({
+            width: '100%'
+        });
+
+        $("#ldapAccess").select2({
+            width: '100%',
+            dropdownParent: $("#dashboardModal")
+        })
         $(".grid-stack-item-content").addClass("active");
         $(".grid-stack").on("click", ".grid-stack-item-content", function() {
             $(".grid-stack-item-content").removeClass("active")
-            $(this).toggleClass("active")
-            actions.select.apply(items, [$(this).index(".grid-stack-item-content")]);
+            $(this).toggleClass("active");
+            const uuid = $(this).find('canvas').data('uuid');
+            const chartByUid = items.charts.findIndex(c => c.options.uuid == uuid);
+
+            actions.select.apply(items, [chartByUid]);
             $(`[chart-type]`).attr('data-selected', 'false');
-            if (items.chart.type) {
+            if (items.chart?.type) {
                 $(`[chart-type=${items.chart.type}]`).click();
             }
 
@@ -679,15 +748,15 @@
                     }
                 }
             })
-
-            if (items.chart?.options) autoFillChartOptions(items.chart?.options);
+            $("#nav-Slice-tab").click();
+            if (items.chart?.options || items.chart?.id) autoFillChartOptions(items.chart.id ? items.chart.instance.options : items.chart?.options);
         })
 
         $("#add-value").click(function() {
             let template = $(".value-0").clone();
             template.find("input,select").val(null)
             template = template.html().replace(/\[(\d+)\]/smg, `[${$(".value-0").length}]`)
-            $(".value-0").last().after(`<div class="row">${template}</div>`)
+            $(".value-0").last().after(`<div class="row value-0">${template}</div>`)
         })
 
         $("#filters").change(function() {
@@ -702,7 +771,10 @@
             $(this).attr("data-selected", "true");
             if (items.chart.type != $(this).attr("chart-type")) {
                 items.chart.type = $(this).attr("chart-type");
+                $("#slice-form").trigger("change")
             }
+
+
         })
 
         grid.on('resizestop dragstop', function(event, el) {
@@ -712,11 +784,13 @@
                 w,
                 h
             } = el.gridstackNode;
+
             items.chart.grid = {
                 x,
                 y,
                 w,
-                h
+                h,
+                content: items.chart.grid.content
             };
         });
     })
@@ -728,13 +802,19 @@
         } = e.target;
 
         if (value == 'true' || value == 'false') value = value == 'true';
-        _.set(items.chart.options.options, name, value);
+        if (items.chart.id) {
+            _.set(items.chart.options.options, name, value);
+            items.chart.instance.options = items.chart.options.options
+        } else {
+            _.set(items.chart.options.options, name, value);
+        }
+
         items.chart.instance.update();
     });
 
     $("#nav-Options-tab").click(function(e) {
         e.preventDefault();
-        if (items.chart.options)
+        if (items.chart.options || items.chart.id)
             autoFillChartOptions(items.chart.options)
     })
 
@@ -772,7 +852,14 @@
     }
 
     const saveDashboard = async (e) => {
+        const form = $("#dashboardSettings")[0];
+
+        if (!form.checkValidity()) {
+            form.reportValidity()
+            return false;
+        }
         try {
+            setUi("loading", true);
             const data = items.charts
                 .filter((chart) => chart.options != null)
                 .map((chart, key) => {
@@ -780,6 +867,11 @@
                         data: _,
                         ...options
                     } = chart.options;
+                    options.uuid = chart?.uuid ?? null;
+                    const {
+                        content: __,
+                        ...grid
+                    } = chart.grid;
                     return {
                         id: chart?.id ?? null,
                         chart_type: options.type,
@@ -788,18 +880,20 @@
                         grid: JSON.stringify(chart.grid),
                     };
                 });
+
+
             const special = {};
-            const form = new FormData(document.forms.dashboardSettings);
-            for (let [key, value] of form) {
-                special[key] = value;
-            }
+
+            if ($("#specAccessKey").val() && $("#specAccessVal").val())
+                special[$("#specAccessKey").val()] = $("#specAccessVal").val();
+
 
             const access = JSON.stringify({
                 special,
-                ldap: ldapAccess
+                ldap: $("#ldapAccess").val()
             });
             const id = null ? id : reportId;
-            const request = await fetch(`/dashboard/create/${id}`, {
+            const request = await fetch(`/dashboard/${pageId ? `update/${pageId}` : `create/${id}`}`, {
                 method: 'POST',
                 body: JSON.stringify({
                     charts: data,
@@ -808,10 +902,120 @@
                 }),
             })
             const response = await request.json();
-            if (response.status == 200) window.location('/pages')
-        } catch {
-
+            setUi("success", "Success");
+            if (response.status == 200) window.location.href = ('/pages')
+        } catch (e) {
+            console.error(e)
+            setUi("error", "Success");
+        } finally {
+            setUi("loading", false);
         }
 
     };
+
+    async function initExistsCharts(charts) {
+        try {
+            const ef = {};
+            for (const field in exactFilters) {
+                if (exactFilters[field] && exactFilters[field]?.size)
+                    ef[field] = [...exactFilters[field]];
+            }
+
+            const request = await fetch(`/chart/pivot/<?= $page['report_table'] ?>`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    charts: charts.map(item => ({
+                        ...item,
+                        slice: {
+                            ...item.slice,
+                            filter: filters,
+                            filters: Object.keys(filters),
+                            exactFilters: ef
+                        }
+                    }))
+                })
+            });
+            const response = await request.json();
+            const responseCharts = response.data;
+            for (const chart of items.charts) {
+                const responsedChart = responseCharts.find(item => item.id == chart.id);
+                if (responsedChart) {
+                    const {
+                        datasets,
+                        labels
+                    } = responsedChart;
+                    const chartElement = document.querySelector(`[data-uuid="${chart.grid.content?.replace(/.*data-uuid=['"](.*?)['"].*/si, "$1")}"]`);
+                    chartElement.id = chart.id;
+                    if (chart?.instance?.config?.type != chart.type && chart.instance instanceof Chart) {
+                        chart.instance.destroy();
+                        chart.instance = null;
+                    }
+
+                    if (!(chart.instance instanceof Chart)) {
+
+                        chart.options.plugins.push(plugin)
+                        chart.options.data = {
+                            datasets,
+                            labels
+                        }
+
+                        chart.instance = new Chart(chartElement, chart.options);
+                    } else {
+                        _.set(chart.options, 'data', {
+                            datasets,
+                            labels
+                        });
+                        chart.instance.data = chart.options.data;
+                        chart.instance.update();
+                    }
+                }
+            }
+            // items.charts = responseCharts;
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    $(".grid-stack").on("click", ".remove-chart", function() {
+        const parentItem = $(this).closest(".grid-stack-item");
+        const uuid = $(this).next().data('uuid'); // Ensure this is correctly set
+        // Remove from your `items.charts` array
+        items.charts = items.charts.filter(chart => chart.options.uuid != uuid);
+
+        // Remove from GridStack
+        grid.removeWidget(parentItem.get(0)); // Convert jQuery object to DOM element
+    });
+
+    $("#nav-options-json-tab").click(function() {
+        editor.setValue(JSON.stringify(items.chart.options, null, 2))
+    })
+
+    $("#save-from-json").click(function() {
+        try {
+            const {
+                type,
+                options,
+                data,
+                plugins
+            } = JSON.parse(editor.getValue());
+            if (type) items.chart.instance.config.type = type;
+            if (options) items.chart.instance.options = options;
+            if (data) items.chart.instance.data = data;
+            if (plugins) items.chart.instance.plugins = plugins;
+            items.chart.instance.update();
+        } catch {
+
+        }
+    })
+
+    $("#slice-form").on("change", ".value-select", function() {
+        const colType = $(this).find("option:selected").data('type')
+        const aggrElement = $(this).closest('.col-6').next();
+        aggrElement.find("select").val(null);
+        if ($(this).val()) {
+            aggrElement.removeClass("d-none").find(`option[value='SUM'],option[value='AVG']`).prop('disabled', !['integer', 'real'].includes(colType));
+        } else {
+            aggrElement.addClass("d-none")
+        }
+    })
 </script>
