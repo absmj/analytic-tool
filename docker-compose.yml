@@ -1,34 +1,29 @@
-version: "2"
+version: "3.8"
+
 services:
-  webserver:
-    image: analytic-tool-con
+  app:
+    build: .
+    container_name: analytic_tool
+    restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     volumes:
       - $PWD:/var/www/html
     depends_on:
-      - database
-    environment:
-      POSTGRES_DB_HOST: database
-      POSTGRES_DB_NAME: postgres
-      POSTGRES_DB_USER: postgres
-      POSTGRES_DB_PASSWORD: 2254
-      SITE_URL: http://localhost
-    networks:
-      - test
+      - db
 
-  database:
-    image: postgres
+  db:
+    image: postgres:13
+    container_name: postgres_db
+    restart: always
     environment:
-      - "POSTGRES_USER=postgres"
-      - "POSTGRES_PASSWORD=2254"
-      - "POSTGRES_DB=postgres"
+      POSTGRES_DB: ci3_db
+      POSTGRES_USER: ci3_user
+      POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
-    networks:
-      - test
+    volumes:
+      - pg_data:/var/lib/postgresql/data
 
-networks:
-  test:
-    external: false
+volumes:
+  pg_data:

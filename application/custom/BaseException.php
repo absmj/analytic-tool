@@ -10,8 +10,6 @@ class BaseException
     public static function api_error($error, $errno = 500)
     {
         http_response_code($errno);
-        header('Content-Type: application/json');
-
         echo json_encode([
             'success' => false,
             'status'  => $errno,

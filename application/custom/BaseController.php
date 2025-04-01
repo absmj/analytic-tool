@@ -25,6 +25,12 @@ class BaseController extends CI_Controller
         if (isPostRequest()) {
             set_error_handler([BaseException::class, 'api_error_handler']);
             set_exception_handler([BaseException::class, 'api_exception_handler']);
+
+            $contentType = $this->input->server('CONTENT_TYPE');
+
+            if (strpos($contentType, 'application/json') === false) {
+                header('Content-Type: application/json');
+            }
         }
 
         $this->title = "Hesabatların idarə edilməsi sistemi";

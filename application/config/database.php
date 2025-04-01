@@ -6,11 +6,11 @@ $query_builder = TRUE;
 
 $db['default'] = array(
     'dsn'   => '',
-    'hostname' => '0.0.0.0',
+    'hostname' => 'postgres_db',
     'port'     =>  5432,
-    'username' => 'postgres',
-    'password' => '2254',
-    'database' => 'postgres',
+    'username' => 'ci3_user',
+    'password' => 'secret',
+    'database' => 'ci3_db',
     'dbdriver' => 'postgre', // Note: The correct driver name is 'postgre' not 'postgre'
     'dbprefix' => '',
     'pconnect' => FALSE,

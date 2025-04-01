@@ -1,28 +1,30 @@
-# Use the official PHP image
-FROM php:7.4-apache
+# Use PHP 8 with Apache
+FROM php:8.0-apache
 
-# Install required extensions
-RUN apt-get install -y libpq-dev \
-  && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-  && docker-php-ext-install pdo pdo_pgsql pgsql
+# Install required system packages and PHP extensions
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libldap2-dev \
+    && docker-php-ext-configure ldap --with-ldap \
+    && docker-php-ext-install pdo pdo_pgsql pgsql ldap
 
-# Enable Apache modules
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Set up working directory
+# Set working directory
 WORKDIR /var/www/html
 
-# Copy CodeIgniter project files to the container
-COPY . .
+# Copy application files
+COPY . /var/www/html
 
-# Install Composer
-# RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
 
-# Install project dependencies
-# RUN composer install --no-plugins --no-scripts
+# Set Apache AllowOverride to All
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
+# Start Apache server
 CMD ["apache2-foreground"]

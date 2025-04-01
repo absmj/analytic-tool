@@ -1,17 +1,17 @@
 
 <?php
-
 require_once "common/CRUD.php";
-
-class Query_model extends CRUD {
-
+class Query_model extends CRUD
+{
     protected $table = 'queries';
 
-    public function list() {
+    public function list()
+    {
         return $this->db->where('is_deleted', false)->get($this->table)->result_array();
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->db->where('id', $id)->where('is_deleted', false)->get($this->table)->row_array();
     }
 
