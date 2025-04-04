@@ -14,13 +14,10 @@ RUN a2enmod rewrite
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy application files
-COPY . /var/www/html
-
-# Set permissions
+# Set permissions (not necessary if you're mounting, but harmless)
 RUN chown -R www-data:www-data /var/www/html
 
-# Set Apache AllowOverride to All
+# Allow .htaccess overrides
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 # Expose port 80

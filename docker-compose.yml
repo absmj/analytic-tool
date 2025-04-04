@@ -6,9 +6,9 @@ services:
     container_name: analytic_tool
     restart: always
     ports:
-      - "8080:80"
+      - "59547:80"
     volumes:
-      - $PWD:/var/www/html
+      - /home/guest/analytic-tool:/var/www/html
     depends_on:
       - db
 
